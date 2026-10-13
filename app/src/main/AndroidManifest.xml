@@ -34,6 +34,11 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".PlaylistsActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".FoldersActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".EqualizerActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".ProfileSettingsActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+
         <service
             android:name=".PlaybackService"
             android:foregroundServiceType="mediaPlayback"

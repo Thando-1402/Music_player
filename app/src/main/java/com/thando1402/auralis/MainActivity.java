@@ -73,6 +73,9 @@ public class MainActivity extends AppCompatActivity {
         recyclerSongs.setLayoutManager(new LinearLayoutManager(this));
 
         checkPermissionAndScan();
+
+        com.google.android.material.bottomnavigation.BottomNavigationView bottomNav = findViewById(R.id.bottom_nav_library);
+        NavigationHelper.setupBottomNavigation(this, bottomNav, R.id.nav_library);
     }
 
     @Override
