@@ -83,6 +83,46 @@ public class MainActivity extends AppCompatActivity {
         controllerFuture.addListener(() -> {
             try {
                 mediaController = controllerFuture.get();
+                
+                // Add the listener to update the UI when the song changes
+                mediaController.addListener(new androidx.media3.common.Player.Listener() {
+                    @Override
+                    public void onMediaItemTransition(MediaItem mediaItem, int reason) {
+                        if (mediaItem != null && mediaItem.mediaMetadata != null) {
+                            String title = mediaItem.mediaMetadata.title != null ? mediaItem.mediaMetadata.title.toString() : "Unknown Track";
+                            String artist = mediaItem.mediaMetadata.artist != null ? mediaItem.mediaMetadata.artist.toString() : "Unknown Artist";
+                            
+                            miniTitle.setText(title);
+                            miniSubtitle.setText(artist);
+                        }
+                    }
+
+                    @Override
+                    public void onIsPlayingChanged(boolean isPlaying) {
+                        if (isPlaying) {
+                            btnPlayPause.setImageResource(R.drawable.ic_pause_24);
+                        } else {
+                            btnPlayPause.setImageResource(R.drawable.ic_play_arrow_24);
+                        }
+                    }
+                });
+
+                // Wire up the Play/Pause button
+                btnPlayPause.setOnClickListener(v -> {
+                    if (mediaController.isPlaying()) {
+                        mediaController.pause();
+                    } else {
+                        mediaController.play();
+                    }
+                });
+
+                // Wire up the Next button
+                btnNext.setOnClickListener(v -> {
+                    if (mediaController.hasNextMediaItem()) {
+                        mediaController.seekToNextMediaItem();
+                    }
+                });
+
             } catch (ExecutionException | InterruptedException e) {
                 e.printStackTrace();
             }
