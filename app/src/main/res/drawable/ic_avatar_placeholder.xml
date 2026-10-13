@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp"
+    android:height="56dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
+  <!-- Background Circle Base -->
+  <path
+      android:fillColor="#1E1E1E"
+      android:pathData="M28,0C12.54,0 0,12.54 0,28s12.54,28 28,28 28,-12.54 28,-28S43.46,0 28,0z"/>
+  <!-- Head -->
+  <path
+      android:fillColor="#00B0FF"
+      android:pathData="M28,14c-4.42,0 -8,3.58 -8,8s3.58,8 8,8 8,-3.58 8,-8 -3.58,-8 -8,-8z"/>
+  <!-- Shoulders / Torso -->
+  <path
+      android:fillColor="#00B0FF"
+      android:pathData="M28,34c-7.34,0 -14,3.78 -14,9.5V46h28v-2.5c0,-5.72 -6.66,-9.5 -14,-9.5z"/>
+</vector>

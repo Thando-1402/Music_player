@@ -1,0 +1,26 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="280dp"
+    android:height="280dp"
+    android:viewportWidth="280"
+    android:viewportHeight="280">
+  <!-- Outer Dark Background Surface -->
+  <path
+      android:fillColor="#1E1E1E"
+      android:pathData="M0,0h280v280H0z"/>
+  <!-- Vinyl Groove Outer -->
+  <path
+      android:fillColor="#262626"
+      android:pathData="M140,24C75.93,24 24,75.93 24,140s51.93,116 116,116 116,-51.93 116,-116S204.07,24 140,24zm0,192c-41.97,0 -76,-34.03 -76,-76s34.03,-76 76,-76 76,34.03 76,76 -34.03,76 -76,76z"/>
+  <!-- Groove Mid Ring -->
+  <path
+      android:fillColor="#181818"
+      android:pathData="M140,80c-33.14,0 -60,26.86 -60,60s26.86,60 60,60 60,-26.86 60,-60 -26.86,-60 -60,-60zm0,96c-19.88,0 -36,-16.12 -36,-36s16.12,-36 36,-36 36,16.12 36,36 -16.12,36 -36,36z"/>
+  <!-- Electric Blue Center Label -->
+  <path
+      android:fillColor="#00B0FF"
+      android:pathData="M140,116c-13.25,0 -24,10.75 -24,24s10.75,24 24,24 24,-10.75 24,-24 -10.75,-24 -24,-24zm0,32c-4.42,0 -8,-3.58 -8,-8s3.58,-8 8,-8 8,3.58 8,8 -3.58,8 -8,8z"/>
+  <!-- Center Spindle Hole -->
+  <path
+      android:fillColor="#121212"
+      android:pathData="M140,136c-2.21,0 -4,1.79 -4,4s1.79,4 4,4 4,-1.79 4,-4 -1.79,-4 -4,-4z"/>
+</vector>
