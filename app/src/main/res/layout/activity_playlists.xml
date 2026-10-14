@@ -6,7 +6,8 @@
     android:id="@+id/playlists_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_window">
+    android:background="@color/bg_window"
+    android:fitsSystemWindows="true">
 
     <!-- Top App Bar -->
     <com.google.android.material.appbar.MaterialToolbar
@@ -214,11 +215,12 @@
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav_playlists"
         android:layout_width="0dp"
-        android:layout_height="56dp"
+        android:layout_height="wrap_content"
         android:background="@color/bg_window"
         app:itemIconTint="@color/selector_nav_tint"
         app:itemTextColor="@color/selector_nav_tint"
         app:menu="@menu/bottom_nav_menu"
+        app:labelVisibilityMode="labeled"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

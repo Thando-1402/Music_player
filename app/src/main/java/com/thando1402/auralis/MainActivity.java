@@ -1,7 +1,9 @@
 package com.thando1402.auralis;
 
 import android.Manifest;
+import android.content.ComponentName;
 import android.content.ContentUris;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
@@ -19,39 +21,79 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatImageButton;
 import androidx.core.content.ContextCompat;
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.MediaMetadata;
+import androidx.media3.common.Player;
+import androidx.media3.session.MediaController;
+import androidx.media3.session.SessionToken;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.content.ComponentName;
-import androidx.media3.common.MediaItem;
-import androidx.media3.session.MediaController;
-import androidx.media3.session.SessionToken;
-import com.google.common.util.concurrent.ListenableFuture;
-import java.util.concurrent.ExecutionException;
+import android.app.AlertDialog;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.Button;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.imageview.ShapeableImageView;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
     private MediaController mediaController;
+    private ListenableFuture<MediaController> controllerFuture;
     private List<Song> currentSongList = new ArrayList<>();
+
     private RecyclerView recyclerSongs;
     private TextView miniTitle, miniSubtitle, textStatus;
-    private AppCompatImageButton btnPlayPause, btnNext;
+    private AppCompatImageButton btnPrev, btnPlayPause, btnNext;
     private ShapeableImageView miniArt;
+
+    private Uri pendingCoverUri = null;
+    private ImageView currentPreviewImageView = null;
+    
+    private final ActivityResultLauncher<String> pickCoverLauncher = registerForActivityResult(
+            new ActivityResultContracts.GetContent(), uri -> {
+                if (uri != null) {
+                    pendingCoverUri = uri;
+                    if (currentPreviewImageView != null) {
+                        currentPreviewImageView.setImageURI(uri);
+                    }
+                }
+            });
+
+    private final Player.Listener playerListener = new Player.Listener() {
+        @Override
+        public void onMediaItemTransition(MediaItem mediaItem, int reason) {
+            syncMiniPlayerUI();
+        }
+
+        @Override
+        public void onMediaMetadataChanged(MediaMetadata mediaMetadata) {
+            syncMiniPlayerUI();
+        }
+
+        @Override
+        public void onIsPlayingChanged(boolean isPlaying) {
+            if (btnPlayPause != null) {
+                btnPlayPause.setImageResource(isPlaying ? R.drawable.ic_pause_24 : R.drawable.ic_play_arrow_24);
+            }
+        }
+    };
 
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
-                    textStatus.setText("Scanning library...");
+                    if (textStatus != null) textStatus.setText("Scanning library...");
                     fetchAudioFiles();
                 } else {
-                    textStatus.setText("Permission denied. We cannot access your music without it.");
+                    if (textStatus != null) textStatus.setText("Permission denied. We cannot access your music without it.");
                     Toast.makeText(this, "Audio permission is required to play local files.", Toast.LENGTH_LONG).show();
                 }
             });
@@ -63,69 +105,66 @@ public class MainActivity extends AppCompatActivity {
 
         recyclerSongs = findViewById(R.id.recycler_view_songs);
         textStatus = findViewById(R.id.textStatus);
-        
-        miniTitle = findViewById(R.id.mini_track_title);
-        miniSubtitle = findViewById(R.id.mini_artist_name);
-        btnPlayPause = findViewById(R.id.mini_btn_play_pause);
-        btnNext = findViewById(R.id.mini_btn_next);
-        miniArt = findViewById(R.id.mini_album_art);
+
+        miniTitle = findViewById(R.id.mini_title);
+        miniSubtitle = findViewById(R.id.mini_subtitle);
+        btnPrev = findViewById(R.id.mini_prev);
+        btnPlayPause = findViewById(R.id.mini_play_pause);
+        btnNext = findViewById(R.id.mini_next);
+        miniArt = findViewById(R.id.mini_track_art);
+
+        if (btnPlayPause != null) {
+            btnPlayPause.setImageResource(R.drawable.ic_play_arrow_24);
+            btnPlayPause.setOnClickListener(v -> {
+                if (mediaController != null) {
+                    if (mediaController.isPlaying()) {
+                        mediaController.pause();
+                    } else {
+                        mediaController.play();
+                    }
+                }
+            });
+        }
+
+        if (btnPrev != null) {
+            btnPrev.setOnClickListener(v -> {
+                if (mediaController != null) mediaController.seekToPrevious();
+            });
+        }
+
+        if (btnNext != null) {
+            btnNext.setOnClickListener(v -> {
+                if (mediaController != null) mediaController.seekToNext();
+            });
+        }
+
+        View miniPlayerContainer = findViewById(R.id.mini_player_container);
+        if (miniPlayerContainer != null) {
+            miniPlayerContainer.setOnClickListener(v -> {
+                startActivity(new Intent(MainActivity.this, NowPlayingActivity.class));
+                overridePendingTransition(R.anim.slide_up_in, 0);
+            });
+        }
+
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav_library);
+        if (bottomNav != null) {
+            NavigationHelper.setupBottomNavigation(this, bottomNav, R.id.nav_library);
+        }
 
         recyclerSongs.setLayoutManager(new LinearLayoutManager(this));
-
         checkPermissionAndScan();
-
-        com.google.android.material.bottomnavigation.BottomNavigationView bottomNav = findViewById(R.id.bottom_nav_library);
-        NavigationHelper.setupBottomNavigation(this, bottomNav, R.id.nav_library);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         SessionToken sessionToken = new SessionToken(this, new ComponentName(this, PlaybackService.class));
-        ListenableFuture<MediaController> controllerFuture = new MediaController.Builder(this, sessionToken).buildAsync();
+        controllerFuture = new MediaController.Builder(this, sessionToken).buildAsync();
         controllerFuture.addListener(() -> {
             try {
                 mediaController = controllerFuture.get();
-                
-                // Add the listener to update the UI when the song changes
-                mediaController.addListener(new androidx.media3.common.Player.Listener() {
-                    @Override
-                    public void onMediaItemTransition(MediaItem mediaItem, int reason) {
-                        if (mediaItem != null && mediaItem.mediaMetadata != null) {
-                            String title = mediaItem.mediaMetadata.title != null ? mediaItem.mediaMetadata.title.toString() : "Unknown Track";
-                            String artist = mediaItem.mediaMetadata.artist != null ? mediaItem.mediaMetadata.artist.toString() : "Unknown Artist";
-                            
-                            miniTitle.setText(title);
-                            miniSubtitle.setText(artist);
-                        }
-                    }
-
-                    @Override
-                    public void onIsPlayingChanged(boolean isPlaying) {
-                        if (isPlaying) {
-                            btnPlayPause.setImageResource(R.drawable.ic_pause_24);
-                        } else {
-                            btnPlayPause.setImageResource(R.drawable.ic_play_arrow_24);
-                        }
-                    }
-                });
-
-                // Wire up the Play/Pause button
-                btnPlayPause.setOnClickListener(v -> {
-                    if (mediaController.isPlaying()) {
-                        mediaController.pause();
-                    } else {
-                        mediaController.play();
-                    }
-                });
-
-                // Wire up the Next button
-                btnNext.setOnClickListener(v -> {
-                    if (mediaController.hasNextMediaItem()) {
-                        mediaController.seekToNextMediaItem();
-                    }
-                });
-
+                mediaController.addListener(playerListener);
+                syncMiniPlayerUI();
             } catch (ExecutionException | InterruptedException e) {
                 e.printStackTrace();
             }
@@ -136,8 +175,37 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         if (mediaController != null) {
-            mediaController.release();
+            mediaController.removeListener(playerListener);
             mediaController = null;
+        }
+        if (controllerFuture != null) {
+            MediaController.releaseFuture(controllerFuture);
+            controllerFuture = null;
+        }
+    }
+
+    private void syncMiniPlayerUI() {
+        if (mediaController == null) return;
+        MediaItem currentItem = mediaController.getCurrentMediaItem();
+        if (currentItem != null && currentItem.mediaMetadata != null) {
+            CharSequence title = currentItem.mediaMetadata.title;
+            CharSequence artist = currentItem.mediaMetadata.artist;
+            if (miniTitle != null && title != null && title.length() > 0) {
+                miniTitle.setText(title);
+            }
+            if (miniSubtitle != null && artist != null && artist.length() > 0) {
+                miniSubtitle.setText(artist);
+            }
+            if (miniArt != null) {
+                if (currentItem.mediaMetadata.artworkUri != null) {
+                    miniArt.setImageURI(currentItem.mediaMetadata.artworkUri);
+                } else {
+                    miniArt.setImageResource(R.drawable.ic_album_placeholder);
+                }
+            }
+        }
+        if (btnPlayPause != null) {
+            btnPlayPause.setImageResource(mediaController.isPlaying() ? R.drawable.ic_pause_24 : R.drawable.ic_play_arrow_24);
         }
     }
 
@@ -154,7 +222,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void fetchAudioFiles() {
-        // Run database query on a background thread so UI doesn't freeze
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Handler handler = new Handler(Looper.getMainLooper());
 
@@ -194,38 +261,104 @@ public class MainActivity extends AppCompatActivity {
                         if (title == null || title.isEmpty()) title = "Unknown Track";
                         if (artist == null || artist.isEmpty()) artist = "Unknown Artist";
 
-                        songList.add(new Song(title, artist, contentUri, duration));
+                        Song song = new Song(title, artist, contentUri, duration);
+                        SongMetadataManager.applySavedEdits(MainActivity.this, song);
+                        songList.add(song);
                     }
                 }
             }
 
-            // Push results back to the main UI thread
             handler.post(() -> {
                 if (songList.isEmpty()) {
-                    textStatus.setText("No music found on this device or SD card.");
-                    textStatus.setVisibility(View.VISIBLE);
+                    if (textStatus != null) {
+                        textStatus.setText("No music found on this device or SD card.");
+                        textStatus.setVisibility(View.VISIBLE);
+                    }
                     recyclerSongs.setVisibility(View.GONE);
                 } else {
-                    textStatus.setVisibility(View.GONE);
+                    if (textStatus != null) textStatus.setVisibility(View.GONE);
                     recyclerSongs.setVisibility(View.VISIBLE);
                     currentSongList = songList;
-                    SongAdapter adapter = new SongAdapter(songList, position -> {
-                        if (mediaController != null) {
-                            mediaController.clearMediaItems();
-                            for (Song s : currentSongList) {
-                                mediaController.addMediaItem(MediaItem.fromUri(s.getUri()));
+                    SongAdapter adapter = new SongAdapter(songList, new SongAdapter.OnSongClickListener() {
+                        @Override
+                        public void onSongClick(int position) {
+                            if (mediaController != null) {
+                                mediaController.clearMediaItems();
+                                for (Song s : currentSongList) {
+                                    MediaMetadata.Builder metaBuilder = new MediaMetadata.Builder()
+                                            .setTitle(s.getTitle())
+                                            .setArtist(s.getArtist());
+                                    if (s.getCustomCoverUri() != null) {
+                                        metaBuilder.setArtworkUri(s.getCustomCoverUri());
+                                    }
+                                    MediaItem item = new MediaItem.Builder()
+                                            .setUri(s.getUri())
+                                            .setMediaMetadata(metaBuilder.build())
+                                            .build();
+                                    mediaController.addMediaItem(item);
+                                }
+                                mediaController.seekToDefaultPosition(position);
+                                mediaController.prepare();
+                                mediaController.play();
                             }
-                            mediaController.seekToDefaultPosition(position);
-                            mediaController.prepare();
-                            mediaController.play();
+                        }
+
+                        @Override
+                        public void onSongOptionsClick(int position) {
+                            showEditDialog(currentSongList.get(position), position);
                         }
                     });
                     recyclerSongs.setAdapter(adapter);
 
-                    miniTitle.setText(songList.size() + " Tracks Indexed");
-                    miniSubtitle.setText("Ready to play");
+                    if (mediaController == null || mediaController.getCurrentMediaItem() == null) {
+                        if (miniTitle != null) miniTitle.setText(songList.size() + " Tracks Indexed");
+                        if (miniSubtitle != null) miniSubtitle.setText("Ready to play");
+                    }
                 }
             });
         });
+    }
+
+    private void showEditDialog(Song song, int position) {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_song, null);
+        EditText editTitle = dialogView.findViewById(R.id.edit_song_title);
+        EditText editArtist = dialogView.findViewById(R.id.edit_song_artist);
+        Button btnPickCover = dialogView.findViewById(R.id.btn_pick_cover);
+        currentPreviewImageView = dialogView.findViewById(R.id.img_edit_cover_preview);
+        pendingCoverUri = null;
+
+        editTitle.setText(song.getTitle());
+        editArtist.setText(song.getArtist());
+        if (song.getCustomCoverUri() != null) {
+            currentPreviewImageView.setImageURI(song.getCustomCoverUri());
+        }
+
+        btnPickCover.setOnClickListener(v -> pickCoverLauncher.launch("image/*"));
+
+        new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    String newTitle = editTitle.getText().toString();
+                    String newArtist = editArtist.getText().toString();
+                    SongMetadataManager.saveSongEdit(this, song, newTitle, newArtist, pendingCoverUri);
+                    
+                    if (recyclerSongs.getAdapter() != null) {
+                        recyclerSongs.getAdapter().notifyItemChanged(position);
+                    }
+                    
+                    if (mediaController != null) {
+                        MediaItem currentItem = mediaController.getCurrentMediaItem();
+                        if (currentItem != null && currentItem.localConfiguration != null 
+                            && currentItem.localConfiguration.uri.equals(song.getUri())) {
+                            
+                            syncMiniPlayerUI();
+                            if (miniArt != null && song.getCustomCoverUri() != null) {
+                                miniArt.setImageURI(song.getCustomCoverUri());
+                            }
+                        }
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 }

@@ -1,23 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/now_playing_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212"
+    android:background="@color/bg_window"
     android:paddingStart="24dp"
     android:paddingEnd="24dp"
-    android:paddingBottom="24dp">
+    android:paddingBottom="24dp"
+    android:fitsSystemWindows="true">
 
-    <!-- Header Toolbar -->
+    <!-- 1. TOP HEADER APP BAR -->
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/btn_collapse"
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@drawable/ic_keyboard_arrow_down_24"
-        app:tint="#FFFFFF"
-        android:contentDescription="Minimize player"
+        app:tint="@color/text_primary"
+        android:contentDescription="Minimize now playing"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -26,10 +29,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="NOW PLAYING"
-        android:textColor="#B0B3B8"
+        android:textColor="@color/text_secondary"
         android:textSize="12sp"
-        android:fontFamily="sans-serif-medium"
-        android:letterSpacing="0.1"
+        android:fontFamily="sans-serif-bold"
+        android:letterSpacing="0.12"
         app:layout_constraintTop_toTopOf="@id/btn_collapse"
         app:layout_constraintBottom_toBottomOf="@id/btn_collapse"
         app:layout_constraintStart_toStartOf="parent"
@@ -41,28 +44,41 @@
         android:layout_height="48dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@drawable/ic_queue_music_24"
-        app:tint="#FFFFFF"
-        android:contentDescription="Play queue"
+        app:tint="@color/text_primary"
+        android:contentDescription="Open Play Queue"
         app:layout_constraintTop_toTopOf="@id/btn_collapse"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- 1:1 Aspect Ratio Hero Album Art -->
+    <TextView
+        android:id="@+id/badge_dsp_profile"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="DSP BALANCED"
+        android:textColor="@color/text_secondary"
+        android:textSize="11sp"
+        android:fontFamily="sans-serif-medium"
+        android:letterSpacing="0.08"
+        android:layout_marginTop="2dp"
+        app:layout_constraintTop_toBottomOf="@id/btn_collapse"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- 2. HERO ALBUM ART -->
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/hero_album_art"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         android:layout_marginBottom="24dp"
         android:scaleType="centerCrop"
         android:src="@drawable/ic_album_placeholder_large"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.Rounded16dp"
         app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintTop_toBottomOf="@id/btn_collapse"
+        app:layout_constraintTop_toBottomOf="@id/badge_dsp_profile"
         app:layout_constraintBottom_toTopOf="@id/metadata_layout"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Metadata Block -->
+    <!-- 3. METADATA & FAVORITE BUTTON -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/metadata_layout"
         android:layout_width="0dp"
@@ -86,8 +102,8 @@
                 android:id="@+id/np_track_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Starlight Memories"
-                android:textColor="#FFFFFF"
+                android:text="No Track Selected"
+                android:textColor="@color/text_primary"
                 android:textSize="22sp"
                 android:fontFamily="sans-serif-bold"
                 android:maxLines="1"
@@ -98,9 +114,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Lunar Collective • Odyssey"
-                android:textColor="#B0B3B8"
-                android:textSize="15sp"
+                android:text="Select a song from Library"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
                 android:fontFamily="sans-serif"
                 android:maxLines="1"
                 android:ellipsize="end" />
@@ -112,20 +128,19 @@
             android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_favorite_border_24"
-            app:tint="#B0B3B8"
-            android:contentDescription="Favorite Track"
+            app:tint="@color/text_primary"
+            android:contentDescription="Favorite track"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
-
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Seek Bar Container -->
+    <!-- 4. SEEK BAR & TIMESTAMPS -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/seek_bar_container"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="20dp"
         app:layout_constraintBottom_toTopOf="@id/primary_controls_layout"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -136,11 +151,11 @@
             android:layout_height="wrap_content"
             android:paddingStart="0dp"
             android:paddingEnd="0dp"
-            android:progressBackgroundTint="#2C2C2C"
-            android:progressTint="#00E676"
-            android:thumbTint="#00E676"
-            android:max="100"
-            android:progress="35"
+            android:progressBackgroundTint="@color/divider_line"
+            android:progressTint="@color/accent_blue"
+            android:thumbTint="@color/accent_blue"
+            android:max="1000"
+            android:progress="0"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
@@ -150,10 +165,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="1:18"
-            android:textColor="#B0B3B8"
+            android:text="0:00"
+            android:textColor="@color/text_secondary"
             android:textSize="12sp"
-            android:fontFamily="sans-serif"
+            android:fontFamily="sans-serif-medium"
             app:layout_constraintTop_toBottomOf="@id/track_seek_bar"
             app:layout_constraintStart_toStartOf="parent" />
 
@@ -162,21 +177,20 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="-2:27"
-            android:textColor="#B0B3B8"
+            android:text="-0:00"
+            android:textColor="@color/text_secondary"
             android:textSize="12sp"
-            android:fontFamily="sans-serif"
+            android:fontFamily="sans-serif-medium"
             app:layout_constraintTop_toBottomOf="@id/track_seek_bar"
             app:layout_constraintEnd_toEndOf="parent" />
-
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Primary Controls (Prev, Hero FAB, Next) -->
+    <!-- 5. PRIMARY MEDIA CONTROLS -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/primary_controls_layout"
         android:layout_width="0dp"
-        android:layout_height="72dp"
-        android:layout_marginBottom="16dp"
+        android:layout_height="76dp"
+        android:layout_marginBottom="18dp"
         app:layout_constraintBottom_toTopOf="@id/secondary_controls_layout"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -187,7 +201,7 @@
             android:layout_height="56dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_skip_previous_32"
-            app:tint="#FFFFFF"
+            app:tint="@color/text_primary"
             android:contentDescription="Previous track"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -199,11 +213,11 @@
             android:id="@+id/btn_play_pause_hero"
             android:layout_width="72dp"
             android:layout_height="72dp"
-            android:backgroundTint="#00E676"
+            android:backgroundTint="@color/accent_blue"
             app:fabCustomSize="72dp"
             app:maxImageSize="36dp"
             android:src="@drawable/ic_play_arrow_36"
-            app:tint="#003314"
+            app:tint="@color/on_accent_blue"
             app:elevation="4dp"
             android:contentDescription="Play or Pause"
             app:layout_constraintTop_toTopOf="parent"
@@ -217,23 +231,23 @@
             android:layout_height="56dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_skip_next_32"
-            app:tint="#FFFFFF"
+            app:tint="@color/text_primary"
             android:contentDescription="Next track"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@id/btn_play_pause_hero"
             app:layout_constraintEnd_toEndOf="parent" />
-
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Secondary Controls -->
+    <!-- 6. SECONDARY CONTROLS -->
     <LinearLayout
         android:id="@+id/secondary_controls_layout"
         android:layout_width="0dp"
         android:layout_height="48dp"
         android:orientation="horizontal"
         android:gravity="center"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginBottom="16dp"
+        app:layout_constraintBottom_toTopOf="@id/dac_hardware_pill"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -243,8 +257,8 @@
             android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_shuffle_24"
-            app:tint="#757575"
-            android:contentDescription="Shuffle" />
+            app:tint="@color/control_inactive"
+            android:contentDescription="Toggle Shuffle" />
 
         <View
             android:layout_width="0dp"
@@ -253,13 +267,17 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_lyrics_toggle"
-            style="@style/Widget.Material3.Button.OutlinedButton"
+            style="@style/Widget.Material3.Button.TonalButton"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
             android:text="LYRICS"
             android:textSize="11sp"
-            android:textColor="#B0B3B8"
-            app:strokeColor="#2C2C2C"
+            android:fontFamily="sans-serif-bold"
+            android:textColor="@color/text_primary"
+            app:icon="@drawable/ic_queue_music_24"
+            app:iconTint="@color/text_secondary"
+            app:iconSize="14dp"
+            app:backgroundTint="@color/surface_card"
             app:cornerRadius="18dp"
             android:paddingHorizontal="16dp" />
 
@@ -274,8 +292,61 @@
             android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_repeat_24"
-            app:tint="#757575"
-            android:contentDescription="Repeat" />
-
+            app:tint="@color/control_inactive"
+            android:contentDescription="Toggle Repeat" />
     </LinearLayout>
+
+    <!-- 7. HARDWARE DAC / AUDIO ROUTE FOOTER PILL -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/dac_hardware_pill"
+        android:layout_width="0dp"
+        android:layout_height="52dp"
+        android:background="@drawable/bg_rounded_card_12dp"
+        android:paddingHorizontal="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginEnd="12dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/icon_cast_output">
+
+            <TextView
+                android:id="@+id/text_output_device"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Internal Audio DAC"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:id="@+id/text_output_codec"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Direct PCM • Zero-Overdraw Engine"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/icon_cast_output"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_headphones_24"
+            app:tint="@color/text_secondary"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

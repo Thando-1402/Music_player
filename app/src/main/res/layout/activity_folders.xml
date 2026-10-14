@@ -6,7 +6,8 @@
     android:id="@+id/folders_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_window">
+    android:background="@color/bg_window"
+    android:fitsSystemWindows="true">
 
     <!-- Top App Bar -->
     <com.google.android.material.appbar.MaterialToolbar
@@ -37,81 +38,132 @@
             android:orientation="vertical"
             android:paddingHorizontal="16dp">
 
-            <!-- Storage Capacity Card -->
+            <!-- Storage Capacity Card (Dual Separate Meters: Phone vs MicroSD) -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/card_storage"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@color/surface_card"
+                android:background="@drawable/bg_rounded_card_12dp"
                 android:padding="16dp">
 
-                <ImageView
-                    android:id="@+id/icon_device_storage"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_sd_storage_24"
-                    app:tint="@color/accent_blue"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintStart_toStartOf="parent" />
-
+                <!-- Row 1: Phone Internal Storage -->
                 <TextView
                     android:id="@+id/text_storage_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="Device Storage"
+                    android:text="Phone Internal Storage"
                     android:textColor="@color/text_primary"
-                    android:textSize="14sp"
-                    android:fontFamily="sans-serif-medium"
-                    app:layout_constraintTop_toTopOf="@id/icon_device_storage"
-                    app:layout_constraintBottom_toBottomOf="@id/icon_device_storage"
-                    app:layout_constraintStart_toEndOf="@id/icon_device_storage" />
+                    android:textSize="13sp"
+                    android:fontFamily="sans-serif-bold"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
 
                 <TextView
                     android:id="@+id/text_storage_free"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="34.2 GB free / 64 GB"
+                    android:text="0 B free / 0 B"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"
-                    app:layout_constraintTop_toTopOf="@id/icon_device_storage"
-                    app:layout_constraintBottom_toBottomOf="@id/icon_device_storage"
+                    app:layout_constraintTop_toTopOf="@id/text_storage_title"
+                    app:layout_constraintBottom_toBottomOf="@id/text_storage_title"
                     app:layout_constraintEnd_toEndOf="parent" />
 
-                <!-- Flat Linear Progress Bar -->
                 <ProgressBar
                     android:id="@+id/progress_storage"
-                    style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                    style="?android:attr/progressBarStyleHorizontal"
                     android:layout_width="0dp"
                     android:layout_height="6dp"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="6dp"
                     android:max="100"
-                    android:progress="46"
+                    android:progress="0"
                     android:progressTint="@color/accent_blue"
                     android:progressBackgroundTint="@color/surface_container_high"
-                    app:layout_constraintTop_toBottomOf="@id/icon_device_storage"
+                    app:layout_constraintTop_toBottomOf="@id/text_storage_title"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="46.5% allocated to FLAC/Audio"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp"
+                <!-- Divider between Phone & SD Card -->
+                <View
+                    android:id="@+id/divider_storage_cards"
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@color/divider_line"
                     app:layout_constraintTop_toBottomOf="@id/progress_storage"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <!-- Row 2: MicroSD Card Storage -->
+                <ImageView
+                    android:id="@+id/icon_sd"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_marginTop="12dp"
+                    android:src="@drawable/ic_sd_storage_24"
+                    app:tint="@color/accent_blue"
+                    app:layout_constraintTop_toBottomOf="@id/divider_storage_cards"
                     app:layout_constraintStart_toStartOf="parent" />
 
                 <TextView
+                    android:id="@+id/text_sd_storage_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Indexed Offline"
+                    android:layout_marginStart="6dp"
+                    android:text="MicroSD Card"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp"
+                    android:fontFamily="sans-serif-bold"
+                    app:layout_constraintTop_toTopOf="@id/icon_sd"
+                    app:layout_constraintBottom_toBottomOf="@id/icon_sd"
+                    app:layout_constraintStart_toEndOf="@id/icon_sd" />
+
+                <TextView
+                    android:id="@+id/text_sd_storage_free"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Not Mounted"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    app:layout_constraintTop_toTopOf="@id/icon_sd"
+                    app:layout_constraintBottom_toBottomOf="@id/icon_sd"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <ProgressBar
+                    android:id="@+id/progress_sd_storage"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="0dp"
+                    android:layout_height="6dp"
+                    android:layout_marginTop="6dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:progressTint="@color/accent_blue"
+                    android:progressBackgroundTint="@color/surface_container_high"
+                    app:layout_constraintTop_toBottomOf="@id/icon_sd"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <!-- Row 3: Telemetry Footer -->
+                <TextView
+                    android:id="@+id/text_storage_allocated"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Audio: 0 MB • APK: 0 MB • RAM: 0 MB"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    app:layout_constraintTop_toBottomOf="@id/progress_sd_storage"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <TextView
+                    android:id="@+id/text_storage_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Details"
                     android:textColor="@color/accent_blue"
                     android:textSize="11sp"
-                    app:layout_constraintTop_toBottomOf="@id/progress_storage"
+                    app:layout_constraintTop_toBottomOf="@id/progress_sd_storage"
                     app:layout_constraintEnd_toEndOf="parent" />
             </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -186,6 +238,7 @@
 
             <!-- Directories Header -->
             <TextView
+                android:id="@+id/text_directories_header"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
@@ -206,6 +259,7 @@
 
             <!-- Loose Media Header -->
             <TextView
+                android:id="@+id/text_loose_files_header"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
@@ -241,11 +295,12 @@
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav_folders"
         android:layout_width="0dp"
-        android:layout_height="56dp"
+        android:layout_height="wrap_content"
         android:background="@color/bg_window"
         app:itemIconTint="@color/selector_nav_tint"
         app:itemTextColor="@color/selector_nav_tint"
         app:menu="@menu/bottom_nav_menu"
+        app:labelVisibilityMode="labeled"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

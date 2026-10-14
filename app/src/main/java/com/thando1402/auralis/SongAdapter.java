@@ -14,6 +14,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
 
     public interface OnSongClickListener {
         void onSongClick(int position);
+        void onSongOptionsClick(int position);
     }
 
     private final List<Song> songs;
@@ -37,7 +38,14 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         holder.titleText.setText(song.getTitle());
         holder.artistText.setText(song.getArtist());
         
+        if (song.getCustomCoverUri() != null) {
+            holder.imgArt.setImageURI(song.getCustomCoverUri());
+        } else {
+            holder.imgArt.setImageResource(R.drawable.ic_album_placeholder);
+        }
+        
         holder.itemView.setOnClickListener(v -> listener.onSongClick(position));
+        holder.btnOptions.setOnClickListener(v -> listener.onSongOptionsClick(position));
     }
 
     @Override
@@ -47,11 +55,15 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
 
     public static class SongViewHolder extends RecyclerView.ViewHolder {
         TextView titleText, artistText;
+        com.google.android.material.imageview.ShapeableImageView imgArt;
+        androidx.appcompat.widget.AppCompatImageButton btnOptions;
 
         public SongViewHolder(@NonNull View itemView) {
             super(itemView);
             titleText = itemView.findViewById(R.id.text_song_title);
             artistText = itemView.findViewById(R.id.text_song_artist);
+            imgArt = itemView.findViewById(R.id.img_song_art);
+            btnOptions = itemView.findViewById(R.id.btn_song_options);
         }
     }
 }
