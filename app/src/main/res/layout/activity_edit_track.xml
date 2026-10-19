@@ -160,6 +160,21 @@
                 android:fontFamily="sans-serif-bold"
                 android:letterSpacing="0.08" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_ai_clean_tags"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="match_parent"
+                android:layout_height="38dp"
+                android:layout_marginBottom="10dp"
+                android:text="✨ AI Auto-Clean Title &amp; Artist"
+                android:textSize="12sp"
+                android:textColor="@color/accent_blue"
+                app:icon="@drawable/ic_auto_awesome_24"
+                app:iconTint="@color/accent_blue"
+                app:iconSize="15dp"
+                app:backgroundTint="@color/surface_card"
+                app:cornerRadius="8dp" />
+
             <com.google.android.material.textfield.TextInputLayout
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"

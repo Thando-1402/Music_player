@@ -2,7 +2,6 @@ package com.thando1402.auralis;
 
 import android.Manifest;
 import android.content.ComponentName;
-import android.content.ContentUris;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -13,13 +12,17 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
 import android.view.View;
+import android.view.animation.AnimationUtils;
+import android.view.animation.LayoutAnimationController;
+import android.view.animation.OvershootInterpolator;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatImageButton;
+import androidx.appcompat.widget.SearchView;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
@@ -29,45 +32,42 @@ import androidx.media3.session.SessionToken;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.app.AlertDialog;
-import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.Button;
-
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.chip.Chip;
 import com.google.android.material.imageview.ShapeableImageView;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SongAdapter.OnSongClickListener {
 
-    private final ExecutorService scanExecutor = Executors.newSingleThreadExecutor();
-    private MediaController mediaController;
-    private ListenableFuture<MediaController> controllerFuture;
-    private List<Song> currentSongList = new ArrayList<>();
+    private static final int PERMISSION_REQUEST_CODE = 123;
 
     private RecyclerView recyclerSongs;
-    private TextView miniTitle, miniSubtitle, textStatus;
+    private SongAdapter adapter;
+    private List<Song> songList = new ArrayList<>();
+    private List<Song> displayedList = new ArrayList<>();
+    
+    private TextView textLibraryStats;
+    private View emptyStateContainer;
+    private SearchView searchViewLibrary;
+    private boolean searchIsVisible = false;
+
+    private TextView miniTitle, miniSubtitle;
     private AppCompatImageButton btnPrev, btnPlayPause, btnNext;
     private ShapeableImageView miniArt;
+    private View miniPlayerContainer;
 
-    private Uri pendingCoverUri = null;
-    private ImageView currentPreviewImageView = null;
-    
-    private final ActivityResultLauncher<String> pickCoverLauncher = registerForActivityResult(
-            new ActivityResultContracts.GetContent(), uri -> {
-                if (uri != null) {
-                    pendingCoverUri = uri;
-                    if (currentPreviewImageView != null) {
-                        currentPreviewImageView.setImageURI(uri);
-                    }
-                }
-            });
+    private MediaController mediaController;
+    private ListenableFuture<MediaController> controllerFuture;
+    private ExecutorService scanExecutor;
+    private Handler mainHandler;
 
     private final Player.Listener playerListener = new Player.Listener() {
         @Override
@@ -88,73 +88,324 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private final ActivityResultLauncher<String> requestPermissionLauncher =
-            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-                if (isGranted) {
-                    if (textStatus != null) textStatus.setText("Scanning library...");
-                    fetchAudioFiles();
-                } else {
-                    if (textStatus != null) textStatus.setText("Permission denied. We cannot access your music without it.");
-                    Toast.makeText(this, "Audio permission is required to play local files.", Toast.LENGTH_LONG).show();
-                }
-            });
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        AuralisTelemetryManager.init(this);
         setContentView(R.layout.activity_main);
 
-        recyclerSongs = findViewById(R.id.recycler_view_songs);
-        textStatus = findViewById(R.id.textStatus);
+        scanExecutor = Executors.newSingleThreadExecutor();
+        mainHandler = new Handler(Looper.getMainLooper());
 
+        recyclerSongs = findViewById(R.id.recycler_view_songs);
+        recyclerSongs.setLayoutManager(new LinearLayoutManager(this));
+        
+        textLibraryStats = findViewById(R.id.text_library_stats);
+        emptyStateContainer = findViewById(R.id.empty_state_container);
+        searchViewLibrary = findViewById(R.id.search_view_library);
+        
         miniTitle = findViewById(R.id.mini_title);
         miniSubtitle = findViewById(R.id.mini_subtitle);
         btnPrev = findViewById(R.id.mini_prev);
         btnPlayPause = findViewById(R.id.mini_play_pause);
         btnNext = findViewById(R.id.mini_next);
         miniArt = findViewById(R.id.mini_track_art);
+        miniPlayerContainer = findViewById(R.id.mini_player_main);
 
-        if (btnPlayPause != null) {
-            btnPlayPause.setImageResource(R.drawable.ic_play_arrow_24);
-            btnPlayPause.setOnClickListener(v -> {
-                if (mediaController != null) {
-                    if (mediaController.isPlaying()) {
-                        mediaController.pause();
-                    } else {
-                        mediaController.play();
-                    }
+        MaterialToolbar topAppBar = findViewById(R.id.toolbar_main);
+        if (topAppBar != null) {
+            topAppBar.setOnMenuItemClickListener(item -> {
+                int id = item.getItemId();
+                if (id == R.id.action_search) {
+                    toggleSearchAnimation();
+                    return true;
+                } else if (id == R.id.action_open_profile) {
+                    startActivity(new Intent(MainActivity.this, ProfileSettingsActivity.class));
+                    return true;
+                } else if (id == R.id.action_rescan) {
+                    checkPermissionAndScan();
+                    Toast.makeText(this, "Rescanning storage...", Toast.LENGTH_SHORT).show();
+                    return true;
                 }
+                return false;
             });
         }
 
+        setupSearchFilter();
+
+        Chip chipFolders = findViewById(R.id.chip_folders);
+        if (chipFolders != null) {
+            chipFolders.setOnClickListener(v -> {
+                startActivity(new Intent(MainActivity.this, FoldersActivity.class));
+                overridePendingTransition(0, 0);
+            });
+        }
+
+        findViewById(R.id.btn_shuffle_all_library).setOnClickListener(v -> {
+            if (mediaController != null && !displayedList.isEmpty()) {
+                mediaController.setShuffleModeEnabled(true);
+                onSongClick(0);
+                Toast.makeText(this, "Shuffling library", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        setupMiniPlayer();
+
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav_main);
+        if (bottomNav != null) {
+            NavigationHelper.setupBottomNavigation(this, bottomNav, R.id.nav_library);
+        }
+
+        checkPermissionAndScan();
+    }
+
+    private void toggleSearchAnimation() {
+        if (searchViewLibrary == null) return;
+        searchIsVisible = !searchIsVisible;
+        if (searchIsVisible) {
+            searchViewLibrary.setAlpha(0f);
+            searchViewLibrary.setVisibility(View.VISIBLE);
+            searchViewLibrary.animate()
+                    .alpha(1f)
+                    .translationY(0)
+                    .setDuration(250)
+                    .setInterpolator(new OvershootInterpolator(1.2f))
+                    .start();
+            searchViewLibrary.setIconified(false);
+        } else {
+            searchViewLibrary.animate()
+                    .alpha(0f)
+                    .translationY(-20f)
+                    .setDuration(150)
+                    .withEndAction(() -> {
+                        searchViewLibrary.setVisibility(View.GONE);
+                        searchViewLibrary.setQuery("", false);
+                    }).start();
+        }
+    }
+
+    private void setupSearchFilter() {
+        if (searchViewLibrary != null) {
+            searchViewLibrary.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+                @Override
+                public boolean onQueryTextSubmit(String query) {
+                    return false;
+                }
+                @Override
+                public boolean onQueryTextChange(String newText) {
+                    filterLibrary(newText);
+                    return true;
+                }
+            });
+        }
+    }
+
+    private void filterLibrary(String query) {
+        displayedList.clear();
+        if (query == null || query.trim().isEmpty()) {
+            displayedList.addAll(songList);
+        } else {
+            String lower = query.toLowerCase().trim();
+            for (Song s : songList) {
+                if ((s.getTitle() != null && s.getTitle().toLowerCase().contains(lower)) ||
+                    (s.getArtist() != null && s.getArtist().toLowerCase().contains(lower))) {
+                    displayedList.add(s);
+                }
+            }
+        }
+        if (adapter != null) adapter.notifyDataSetChanged();
+        updateLibraryStats();
+    }
+
+    private void checkPermissionAndScan() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_MEDIA_AUDIO}, PERMISSION_REQUEST_CODE);
+            } else {
+                scanMedia();
+            }
+        } else {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST_CODE);
+            } else {
+                scanMedia();
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                scanMedia();
+            } else {
+                if (textLibraryStats != null) textLibraryStats.setText("Storage Permission Required");
+            }
+        }
+    }
+
+    private void scanMedia() {
+        scanExecutor.execute(() -> {
+            List<Song> newSongs = new ArrayList<>();
+            Uri collection;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                collection = MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL);
+            } else {
+                collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+            }
+
+            String[] projection = new String[]{
+                    MediaStore.Audio.Media._ID,
+                    MediaStore.Audio.Media.TITLE,
+                    MediaStore.Audio.Media.ARTIST,
+                    MediaStore.Audio.Media.DATA,
+                    MediaStore.Audio.Media.DURATION
+            };
+
+            String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
+
+            try (Cursor cursor = getContentResolver().query(collection, projection, selection, null, MediaStore.Audio.Media.TITLE + " ASC")) {
+                if (cursor != null) {
+                    int idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
+                    int titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
+                    int artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
+                    int dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
+                    int durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
+
+                    while (cursor.moveToNext()) {
+                        long id = cursor.getLong(idColumn);
+                        String title = cursor.getString(titleColumn);
+                        String artist = cursor.getString(artistColumn);
+                        String data = cursor.getString(dataColumn);
+                        long duration = cursor.getLong(durationColumn);
+
+                        Uri contentUri = Uri.withAppendedPath(collection, String.valueOf(id));
+
+                        if (!AudioFilterManager.shouldExcludeTrack(this, title, data, duration)) {
+                            Song temp = new Song(title, artist, contentUri, duration);
+                            SongMetadataManager.applySavedEdits(this, temp);
+                            newSongs.add(temp);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            mainHandler.post(() -> {
+                songList.clear();
+                songList.addAll(newSongs);
+                displayedList.clear();
+                displayedList.addAll(songList);
+                
+                if (adapter == null) {
+                    adapter = new SongAdapter(displayedList, this);
+                    recyclerSongs.setAdapter(adapter);
+                    animateRecyclerViewEntrance();
+                } else {
+                    adapter.notifyDataSetChanged();
+                }
+                
+                updateLibraryStats();
+            });
+        });
+    }
+
+    private void animateRecyclerViewEntrance() {
+        if (recyclerSongs == null) return;
+        LayoutAnimationController controller = AnimationUtils.loadLayoutAnimation(this, R.anim.layout_anim_fall_down);
+        recyclerSongs.setLayoutAnimation(controller);
+        recyclerSongs.getAdapter().notifyDataSetChanged();
+        recyclerSongs.scheduleLayoutAnimation();
+    }
+
+    private void updateLibraryStats() {
+        if (textLibraryStats != null) {
+            textLibraryStats.setText(displayedList.size() + " Hi-Res Tracks");
+        }
+        if (emptyStateContainer != null) {
+            emptyStateContainer.setVisibility(displayedList.isEmpty() ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    @Override
+    public void onSongClick(int position) {
+        if (mediaController != null && !displayedList.isEmpty()) {
+            List<MediaItem> mediaItems = new ArrayList<>();
+            for (Song song : displayedList) {
+                MediaItem.Builder builder = new MediaItem.Builder()
+                        .setUri(song.getUri())
+                        .setMediaId(song.getUri().toString());
+
+                MediaMetadata.Builder metaBuilder = new MediaMetadata.Builder()
+                        .setTitle(song.getTitle())
+                        .setArtist(song.getArtist());
+                
+                if (song.getCustomCoverUri() != null) {
+                    metaBuilder.setArtworkUri(song.getCustomCoverUri());
+                }
+                builder.setMediaMetadata(metaBuilder.build());
+                mediaItems.add(builder.build());
+            }
+
+            mediaController.setMediaItems(mediaItems, position, 0);
+            mediaController.prepare();
+            mediaController.play();
+            syncMiniPlayerUI();
+            bounceMiniPlayer();
+        }
+    }
+
+    @Override
+    public void onSongOptionsClick(int position) {
+        Song clicked = displayedList.get(position);
+        Intent editIntent = new Intent(this, EditTrackActivity.class);
+        editIntent.putExtra("EXTRA_SONG_URI", clicked.getUri().toString());
+        editIntent.putExtra("EXTRA_SONG_TITLE", clicked.getTitle());
+        editIntent.putExtra("EXTRA_SONG_ARTIST", clicked.getArtist());
+        startActivity(editIntent);
+    }
+
+    private void bounceMiniPlayer() {
+        if (miniPlayerContainer != null) {
+            miniPlayerContainer.animate()
+                    .scaleX(0.97f).scaleY(0.97f)
+                    .setDuration(100)
+                    .withEndAction(() -> {
+                        miniPlayerContainer.animate()
+                                .scaleX(1.0f).scaleY(1.0f)
+                                .setDuration(250)
+                                .setInterpolator(new OvershootInterpolator(2.0f))
+                                .start();
+                    }).start();
+        }
+    }
+
+    private void setupMiniPlayer() {
+        if (btnPlayPause != null) {
+            btnPlayPause.setOnClickListener(v -> {
+                if (mediaController != null) {
+                    if (mediaController.isPlaying()) mediaController.pause();
+                    else mediaController.play();
+                }
+            });
+        }
         if (btnPrev != null) {
             btnPrev.setOnClickListener(v -> {
                 if (mediaController != null) mediaController.seekToPrevious();
             });
         }
-
         if (btnNext != null) {
             btnNext.setOnClickListener(v -> {
                 if (mediaController != null) mediaController.seekToNext();
             });
         }
-
-        View miniPlayerContainer = findViewById(R.id.mini_player_container);
         if (miniPlayerContainer != null) {
             miniPlayerContainer.setOnClickListener(v -> {
                 startActivity(new Intent(MainActivity.this, NowPlayingActivity.class));
                 overridePendingTransition(R.anim.slide_up_in, 0);
             });
         }
-
-        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav_library);
-        if (bottomNav != null) {
-            NavigationHelper.setupBottomNavigation(this, bottomNav, R.id.nav_library);
-        }
-
-        recyclerSongs.setLayoutManager(new LinearLayoutManager(this));
-        checkPermissionAndScan();
     }
 
     @Override
@@ -171,10 +422,18 @@ public class MainActivity extends AppCompatActivity {
                 mediaController = future.get();
                 mediaController.addListener(playerListener);
                 syncMiniPlayerUI();
-            } catch (ExecutionException | InterruptedException | java.util.concurrent.CancellationException e) {
+            } catch (ExecutionException | InterruptedException | CancellationException e) {
                 e.printStackTrace();
             }
         }, ContextCompat.getMainExecutor(this));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (adapter != null) {
+            checkPermissionAndScan();
+        }
     }
 
     @Override
@@ -193,7 +452,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        scanExecutor.shutdownNow();
+        if (scanExecutor != null) {
+            scanExecutor.shutdownNow();
+        }
     }
 
     private void syncMiniPlayerUI() {
@@ -202,12 +463,9 @@ public class MainActivity extends AppCompatActivity {
         if (currentItem != null && currentItem.mediaMetadata != null) {
             CharSequence title = currentItem.mediaMetadata.title;
             CharSequence artist = currentItem.mediaMetadata.artist;
-            if (miniTitle != null && title != null && title.length() > 0) {
-                miniTitle.setText(title);
-            }
-            if (miniSubtitle != null && artist != null && artist.length() > 0) {
-                miniSubtitle.setText(artist);
-            }
+            if (miniTitle != null && title != null && title.length() > 0) miniTitle.setText(title);
+            if (miniSubtitle != null && artist != null && artist.length() > 0) miniSubtitle.setText(artist);
+            
             if (miniArt != null) {
                 if (currentItem.mediaMetadata.artworkUri != null) {
                     miniArt.setImageURI(currentItem.mediaMetadata.artworkUri);
@@ -219,186 +477,5 @@ public class MainActivity extends AppCompatActivity {
         if (btnPlayPause != null) {
             btnPlayPause.setImageResource(mediaController.isPlaying() ? R.drawable.ic_pause_24 : R.drawable.ic_play_arrow_24);
         }
-    }
-
-    private void checkPermissionAndScan() {
-        String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ?
-                Manifest.permission.READ_MEDIA_AUDIO :
-                Manifest.permission.READ_EXTERNAL_STORAGE;
-
-        if (ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
-            fetchAudioFiles();
-        } else {
-            requestPermissionLauncher.launch(permission);
-        }
-    }
-
-    private void fetchAudioFiles() {
-        Handler handler = new Handler(Looper.getMainLooper());
-
-        scanExecutor.execute(() -> {
-            List<Song> songList = new ArrayList<>();
-            Uri collection = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ?
-                    MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL) :
-                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-
-            String[] projection = new String[]{
-                    MediaStore.Audio.Media._ID,
-                    MediaStore.Audio.Media.TITLE,
-                    MediaStore.Audio.Media.ARTIST,
-                    MediaStore.Audio.Media.DURATION,
-                    MediaStore.Audio.Media.DATA,
-                    MediaStore.MediaColumns.VOLUME_NAME
-            };
-
-            String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
-            String sortOrder = MediaStore.Audio.Media.TITLE + " ASC";
-
-            try (Cursor cursor = getApplicationContext().getContentResolver().query(
-                    collection, projection, selection, null, sortOrder)) {
-
-                if (cursor != null) {
-                    int idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
-                    int titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
-                    int artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
-                    int durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
-                    int dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
-                    int volumeCol = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? cursor.getColumnIndex(MediaStore.MediaColumns.VOLUME_NAME) : -1;
-
-                    while (cursor.moveToNext()) {
-                        long id = cursor.getLong(idColumn);
-                        String title = cursor.getString(titleColumn);
-                        String artist = cursor.getString(artistColumn);
-                        long duration = cursor.getLong(durationColumn);
-                        String fullPath = cursor.getString(dataColumn);
-
-                        if (AudioFilterManager.shouldExcludeTrack(MainActivity.this, title, fullPath)) {
-                            continue;
-                        }
-
-                        Uri contentUri;
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && volumeCol != -1) {
-                            String volumeName = cursor.getString(volumeCol);
-                            if (volumeName != null && !volumeName.isEmpty()) {
-                                contentUri = ContentUris.withAppendedId(
-                                        MediaStore.Audio.Media.getContentUri(volumeName), id);
-                            } else {
-                                contentUri = ContentUris.withAppendedId(
-                                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
-                            }
-                        } else {
-                            contentUri = ContentUris.withAppendedId(
-                                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
-                        }
-
-                        if (title == null || title.isEmpty()) title = "Unknown Track";
-                        if (artist == null || artist.isEmpty()) artist = "Unknown Artist";
-
-                        Song song = new Song(title, artist, contentUri, duration);
-                        SongMetadataManager.applySavedEdits(MainActivity.this, song);
-                        songList.add(song);
-                    }
-                }
-            }
-
-            handler.post(() -> {
-                if (isFinishing() || isDestroyed()) return;
-                if (songList.isEmpty()) {
-                    if (textStatus != null) {
-                        textStatus.setText("No music found on this device or SD card.");
-                        textStatus.setVisibility(View.VISIBLE);
-                    }
-                    recyclerSongs.setVisibility(View.GONE);
-                } else {
-                    if (textStatus != null) textStatus.setVisibility(View.GONE);
-                    recyclerSongs.setVisibility(View.VISIBLE);
-                    currentSongList = songList;
-                    SongAdapter adapter = new SongAdapter(songList, new SongAdapter.OnSongClickListener() {
-                        @Override
-                        public void onSongClick(int position) {
-                            if (mediaController != null) {
-                                mediaController.clearMediaItems();
-                                for (Song s : currentSongList) {
-                                    MediaMetadata.Builder metaBuilder = new MediaMetadata.Builder()
-                                            .setTitle(s.getTitle())
-                                            .setArtist(s.getArtist());
-                                    if (s.getCustomCoverUri() != null) {
-                                        metaBuilder.setArtworkUri(s.getCustomCoverUri());
-                                    }
-                                    MediaItem item = new MediaItem.Builder()
-                                            .setUri(s.getUri())
-                                            .setMediaId(s.getUri().toString())
-                                            .setMediaMetadata(metaBuilder.build())
-                                            .build();
-                                    mediaController.addMediaItem(item);
-                                }
-                                mediaController.seekToDefaultPosition(position);
-                                mediaController.prepare();
-                                mediaController.play();
-                            }
-                        }
-
-                        @Override
-                        public void onSongOptionsClick(int position) {
-                            Song s = currentSongList.get(position);
-                            Intent intent = new Intent(MainActivity.this, EditTrackActivity.class);
-                            intent.putExtra("EXTRA_SONG_URI", s.getUri().toString());
-                            intent.putExtra("EXTRA_SONG_TITLE", s.getTitle());
-                            intent.putExtra("EXTRA_SONG_ARTIST", s.getArtist());
-                            startActivity(intent);
-                        }
-                    });
-                    recyclerSongs.setAdapter(adapter);
-
-                    if (mediaController == null || mediaController.getCurrentMediaItem() == null) {
-                        if (miniTitle != null) miniTitle.setText(songList.size() + " Tracks Indexed");
-                        if (miniSubtitle != null) miniSubtitle.setText("Ready to play");
-                    }
-                }
-            });
-        });
-    }
-
-    private void showEditDialog(Song song, int position) {
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_song, null);
-        EditText editTitle = dialogView.findViewById(R.id.edit_song_title);
-        EditText editArtist = dialogView.findViewById(R.id.edit_song_artist);
-        Button btnPickCover = dialogView.findViewById(R.id.btn_pick_cover);
-        currentPreviewImageView = dialogView.findViewById(R.id.img_edit_cover_preview);
-        pendingCoverUri = null;
-
-        editTitle.setText(song.getTitle());
-        editArtist.setText(song.getArtist());
-        if (song.getCustomCoverUri() != null) {
-            currentPreviewImageView.setImageURI(song.getCustomCoverUri());
-        }
-
-        btnPickCover.setOnClickListener(v -> pickCoverLauncher.launch("image/*"));
-
-        new AlertDialog.Builder(this)
-                .setView(dialogView)
-                .setPositiveButton("Save", (dialog, which) -> {
-                    String newTitle = editTitle.getText().toString();
-                    String newArtist = editArtist.getText().toString();
-                    SongMetadataManager.saveSongEdit(this, song, newTitle, newArtist, pendingCoverUri);
-                    
-                    if (recyclerSongs.getAdapter() != null) {
-                        recyclerSongs.getAdapter().notifyItemChanged(position);
-                    }
-                    
-                    if (mediaController != null) {
-                        MediaItem currentItem = mediaController.getCurrentMediaItem();
-                        if (currentItem != null && currentItem.localConfiguration != null 
-                            && currentItem.localConfiguration.uri.equals(song.getUri())) {
-                            
-                            syncMiniPlayerUI();
-                            if (miniArt != null && song.getCustomCoverUri() != null) {
-                                miniArt.setImageURI(song.getCustomCoverUri());
-                            }
-                        }
-                    }
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
     }
 }

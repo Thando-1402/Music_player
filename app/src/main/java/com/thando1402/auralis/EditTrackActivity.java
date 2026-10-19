@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -128,6 +129,20 @@ public class EditTrackActivity extends AppCompatActivity {
 
         findViewById(R.id.btn_save_track_header).setOnClickListener(v -> saveAndFinish());
         findViewById(R.id.btn_save_track_bottom).setOnClickListener(v -> saveAndFinish());
+
+        View btnAiClean = findViewById(R.id.btn_ai_clean_tags);
+        if (btnAiClean != null) {
+            btnAiClean.setOnClickListener(v -> {
+                String rawT = editTitle != null ? editTitle.getText().toString() : "";
+                String rawA = editArtist != null ? editArtist.getText().toString() : "";
+                Toast.makeText(this, "Cleaning tags...", Toast.LENGTH_SHORT).show();
+                OpenRouterAiHelper.autoCleanSongMetadata(this, rawT, rawA, (cleanTitle, cleanArtist, usedCloudAi) -> {
+                    if (editTitle != null) editTitle.setText(cleanTitle);
+                    if (editArtist != null) editArtist.setText(cleanArtist);
+                    Toast.makeText(this, usedCloudAi ? "Cleaned via OpenRouter AI!" : "Cleaned via Offline Smart Parser!", Toast.LENGTH_SHORT).show();
+                });
+            });
+        }
     }
 
     private void saveAndFinish() {
