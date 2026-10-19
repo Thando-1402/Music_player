@@ -15,6 +15,7 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
 
     public interface OnFolderClickListener {
         void onFolderClick(FolderItem folder);
+        void onFolderLongClick(FolderItem folder);
     }
 
     private final List<FolderItem> folders;
@@ -39,6 +40,10 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
         String sizeStr = Formatter.formatShortFileSize(holder.itemView.getContext(), folder.getTotalBytes());
         holder.textStats.setText(folder.getFileCount() + " audio files • " + sizeStr);
         holder.itemView.setOnClickListener(v -> listener.onFolderClick(folder));
+        holder.itemView.setOnLongClickListener(v -> {
+            listener.onFolderLongClick(folder);
+            return true;
+        });
     }
 
     @Override

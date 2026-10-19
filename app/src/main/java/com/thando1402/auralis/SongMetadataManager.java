@@ -19,6 +19,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
+import java.util.Iterator;
+
 public class SongMetadataManager {
 
     private static final String PREFS_NAME = "auralis_settings";
@@ -46,6 +48,25 @@ public class SongMetadataManager {
             return externalDirs[0];
         }
         return context.getFilesDir();
+    }
+
+    private static File getStableMetadataFile(Context context) {
+        File stableFile = new File(context.getFilesDir(), JSON_FILE_NAME);
+        if (!stableFile.exists()) {
+            // Migrate any existing JSON from external/SD directories
+            File[] externalDirs = ContextCompat.getExternalFilesDirs(context, null);
+            for (File dir : externalDirs) {
+                if (dir != null) {
+                    File legacyFile = new File(dir, JSON_FILE_NAME);
+                    if (legacyFile.exists()) {
+                        JSONObject legacyJson = readFileToJson(legacyFile);
+                        writeJsonToFile(stableFile, legacyJson);
+                        break;
+                    }
+                }
+            }
+        }
+        return stableFile;
     }
 
     public static void applySavedEdits(Context context, Song song) {
@@ -97,6 +118,42 @@ public class SongMetadataManager {
         }
     }
 
+    public static boolean isFavorite(Context context, String songUriKey) {
+        if (songUriKey == null || songUriKey.isEmpty()) return false;
+        JSONObject allEdits = loadJson(context);
+        JSONObject edit = allEdits.optJSONObject(songUriKey);
+        return edit != null && edit.optBoolean("favorite", false);
+    }
+
+    public static void setFavorite(Context context, String songUriKey, boolean favorite) {
+        if (songUriKey == null || songUriKey.isEmpty()) return;
+        try {
+            JSONObject allEdits = loadJson(context);
+            JSONObject edit = allEdits.optJSONObject(songUriKey);
+            if (edit == null) edit = new JSONObject();
+            edit.put("favorite", favorite);
+            allEdits.put(songUriKey, edit);
+            saveJson(context, allEdits);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void removeCustomCover(Context context, String songUriKey) {
+        if (songUriKey == null || songUriKey.isEmpty()) return;
+        try {
+            JSONObject allEdits = loadJson(context);
+            JSONObject edit = allEdits.optJSONObject(songUriKey);
+            if (edit != null) {
+                edit.remove("coverPath");
+                allEdits.put(songUriKey, edit);
+                saveJson(context, allEdits);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private static File compressAndSaveCover(Context context, Uri imageUri, int songHash) {
         try (InputStream in = context.getContentResolver().openInputStream(imageUri)) {
             if (in == null) return null;
@@ -122,8 +179,15 @@ public class SongMetadataManager {
     }
 
     private static JSONObject loadJson(Context context) {
-        File file = new File(getStorageDirectory(context), JSON_FILE_NAME);
-        if (!file.exists()) return new JSONObject();
+        return readFileToJson(getStableMetadataFile(context));
+    }
+
+    private static void saveJson(Context context, JSONObject json) {
+        writeJsonToFile(getStableMetadataFile(context), json);
+    }
+
+    private static JSONObject readFileToJson(File file) {
+        if (file == null || !file.exists()) return new JSONObject();
         try (FileInputStream fis = new FileInputStream(file);
              BufferedReader reader = new BufferedReader(new InputStreamReader(fis, StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();
@@ -135,8 +199,8 @@ public class SongMetadataManager {
         }
     }
 
-    private static void saveJson(Context context, JSONObject json) {
-        File file = new File(getStorageDirectory(context), JSON_FILE_NAME);
+    private static void writeJsonToFile(File file, JSONObject json) {
+        if (file == null) return;
         try (FileOutputStream fos = new FileOutputStream(file)) {
             fos.write(json.toString().getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {

@@ -39,6 +39,8 @@
         <activity android:name=".EqualizerActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ProfileSettingsActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".NowPlayingActivity" android:exported="false" />
+        <activity android:name=".FolderExclusionsActivity" android:exported="false" />
+        <activity android:name=".EditTrackActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
 
         <service
             android:name=".PlaybackService"

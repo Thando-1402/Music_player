@@ -46,6 +46,7 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
+    private final ExecutorService scanExecutor = Executors.newSingleThreadExecutor();
     private MediaController mediaController;
     private ListenableFuture<MediaController> controllerFuture;
     private List<Song> currentSongList = new ArrayList<>();
@@ -101,6 +102,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AuralisTelemetryManager.init(this);
         setContentView(R.layout.activity_main);
 
         recyclerSongs = findViewById(R.id.recycler_view_songs);
@@ -159,13 +161,17 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         SessionToken sessionToken = new SessionToken(this, new ComponentName(this, PlaybackService.class));
-        controllerFuture = new MediaController.Builder(this, sessionToken).buildAsync();
-        controllerFuture.addListener(() -> {
+        final ListenableFuture<MediaController> future = new MediaController.Builder(this, sessionToken).buildAsync();
+        controllerFuture = future;
+        future.addListener(() -> {
+            if (future != controllerFuture || future.isCancelled() || isFinishing() || isDestroyed()) {
+                return;
+            }
             try {
-                mediaController = controllerFuture.get();
+                mediaController = future.get();
                 mediaController.addListener(playerListener);
                 syncMiniPlayerUI();
-            } catch (ExecutionException | InterruptedException e) {
+            } catch (ExecutionException | InterruptedException | java.util.concurrent.CancellationException e) {
                 e.printStackTrace();
             }
         }, ContextCompat.getMainExecutor(this));
@@ -182,6 +188,12 @@ public class MainActivity extends AppCompatActivity {
             MediaController.releaseFuture(controllerFuture);
             controllerFuture = null;
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        scanExecutor.shutdownNow();
     }
 
     private void syncMiniPlayerUI() {
@@ -222,10 +234,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void fetchAudioFiles() {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
         Handler handler = new Handler(Looper.getMainLooper());
 
-        executor.execute(() -> {
+        scanExecutor.execute(() -> {
             List<Song> songList = new ArrayList<>();
             Uri collection = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ?
                     MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL) :
@@ -235,7 +246,9 @@ public class MainActivity extends AppCompatActivity {
                     MediaStore.Audio.Media._ID,
                     MediaStore.Audio.Media.TITLE,
                     MediaStore.Audio.Media.ARTIST,
-                    MediaStore.Audio.Media.DURATION
+                    MediaStore.Audio.Media.DURATION,
+                    MediaStore.Audio.Media.DATA,
+                    MediaStore.MediaColumns.VOLUME_NAME
             };
 
             String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
@@ -249,14 +262,34 @@ public class MainActivity extends AppCompatActivity {
                     int titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
                     int artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
                     int durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
+                    int dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
+                    int volumeCol = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? cursor.getColumnIndex(MediaStore.MediaColumns.VOLUME_NAME) : -1;
 
                     while (cursor.moveToNext()) {
                         long id = cursor.getLong(idColumn);
                         String title = cursor.getString(titleColumn);
                         String artist = cursor.getString(artistColumn);
                         long duration = cursor.getLong(durationColumn);
+                        String fullPath = cursor.getString(dataColumn);
 
-                        Uri contentUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
+                        if (AudioFilterManager.shouldExcludeTrack(MainActivity.this, title, fullPath)) {
+                            continue;
+                        }
+
+                        Uri contentUri;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && volumeCol != -1) {
+                            String volumeName = cursor.getString(volumeCol);
+                            if (volumeName != null && !volumeName.isEmpty()) {
+                                contentUri = ContentUris.withAppendedId(
+                                        MediaStore.Audio.Media.getContentUri(volumeName), id);
+                            } else {
+                                contentUri = ContentUris.withAppendedId(
+                                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
+                            }
+                        } else {
+                            contentUri = ContentUris.withAppendedId(
+                                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
+                        }
 
                         if (title == null || title.isEmpty()) title = "Unknown Track";
                         if (artist == null || artist.isEmpty()) artist = "Unknown Artist";
@@ -269,6 +302,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             handler.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
                 if (songList.isEmpty()) {
                     if (textStatus != null) {
                         textStatus.setText("No music found on this device or SD card.");
@@ -293,6 +327,7 @@ public class MainActivity extends AppCompatActivity {
                                     }
                                     MediaItem item = new MediaItem.Builder()
                                             .setUri(s.getUri())
+                                            .setMediaId(s.getUri().toString())
                                             .setMediaMetadata(metaBuilder.build())
                                             .build();
                                     mediaController.addMediaItem(item);
@@ -305,7 +340,12 @@ public class MainActivity extends AppCompatActivity {
 
                         @Override
                         public void onSongOptionsClick(int position) {
-                            showEditDialog(currentSongList.get(position), position);
+                            Song s = currentSongList.get(position);
+                            Intent intent = new Intent(MainActivity.this, EditTrackActivity.class);
+                            intent.putExtra("EXTRA_SONG_URI", s.getUri().toString());
+                            intent.putExtra("EXTRA_SONG_TITLE", s.getTitle());
+                            intent.putExtra("EXTRA_SONG_ARTIST", s.getArtist());
+                            startActivity(intent);
                         }
                     });
                     recyclerSongs.setAdapter(adapter);

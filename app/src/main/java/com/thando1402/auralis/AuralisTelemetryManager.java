@@ -30,7 +30,6 @@ public class AuralisTelemetryManager {
 
         Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
             saveCrashReportLocally(appContext, throwable);
-            forwardToFirebaseIfAvailable(throwable);
             if (defaultHandler != null) {
                 defaultHandler.uncaughtException(thread, throwable);
             }

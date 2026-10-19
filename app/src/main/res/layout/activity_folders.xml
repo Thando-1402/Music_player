@@ -38,134 +38,198 @@
             android:orientation="vertical"
             android:paddingHorizontal="16dp">
 
-            <!-- Storage Capacity Card (Dual Separate Meters: Phone vs MicroSD) -->
-            <androidx.constraintlayout.widget.ConstraintLayout
+            <!-- Dual Storage Horizontal Split Cards + Scan & Index Filters Card -->
+            <LinearLayout
                 android:id="@+id/card_storage"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_rounded_card_12dp"
-                android:padding="16dp">
+                android:orientation="vertical">
 
-                <!-- Row 1: Phone Internal Storage -->
-                <TextView
-                    android:id="@+id/text_storage_title"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Phone Internal Storage"
-                    android:textColor="@color/text_primary"
-                    android:textSize="13sp"
-                    android:fontFamily="sans-serif-bold"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintStart_toStartOf="parent" />
+                    android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/text_storage_free"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0 B free / 0 B"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp"
-                    app:layout_constraintTop_toTopOf="@id/text_storage_title"
-                    app:layout_constraintBottom_toBottomOf="@id/text_storage_title"
-                    app:layout_constraintEnd_toEndOf="parent" />
+                    <!-- Volume 1: Internal Storage Card -->
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:id="@+id/card_storage_internal"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/bg_rounded_card_12dp"
+                        android:padding="12dp">
 
-                <ProgressBar
-                    android:id="@+id/progress_storage"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="0dp"
-                    android:layout_height="6dp"
-                    android:layout_marginTop="6dp"
-                    android:max="100"
-                    android:progress="0"
-                    android:progressTint="@color/accent_blue"
-                    android:progressBackgroundTint="@color/surface_container_high"
-                    app:layout_constraintTop_toBottomOf="@id/text_storage_title"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent" />
+                        <ImageView
+                            android:id="@+id/icon_internal"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_sd_storage_24"
+                            app:tint="@color/accent_blue"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintStart_toStartOf="parent" />
 
-                <!-- Divider between Phone & SD Card -->
-                <View
-                    android:id="@+id/divider_storage_cards"
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="12dp"
-                    android:background="@color/divider_line"
-                    app:layout_constraintTop_toBottomOf="@id/progress_storage"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent" />
+                        <TextView
+                            android:id="@+id/text_storage_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="Internal"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp"
+                            android:fontFamily="sans-serif-bold"
+                            app:layout_constraintTop_toTopOf="@id/icon_internal"
+                            app:layout_constraintBottom_toBottomOf="@id/icon_internal"
+                            app:layout_constraintStart_toEndOf="@id/icon_internal" />
 
-                <!-- Row 2: MicroSD Card Storage -->
-                <ImageView
-                    android:id="@+id/icon_sd"
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_marginTop="12dp"
-                    android:src="@drawable/ic_sd_storage_24"
-                    app:tint="@color/accent_blue"
-                    app:layout_constraintTop_toBottomOf="@id/divider_storage_cards"
-                    app:layout_constraintStart_toStartOf="parent" />
+                        <ProgressBar
+                            android:id="@+id/progress_storage"
+                            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                            android:layout_width="0dp"
+                            android:layout_height="5dp"
+                            android:layout_marginTop="10dp"
+                            android:max="100"
+                            android:progress="0"
+                            android:progressTint="@color/accent_blue"
+                            android:progressBackgroundTint="@color/surface_container_high"
+                            app:layout_constraintTop_toBottomOf="@id/icon_internal"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent" />
 
-                <TextView
-                    android:id="@+id/text_sd_storage_title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:text="MicroSD Card"
-                    android:textColor="@color/text_primary"
-                    android:textSize="13sp"
-                    android:fontFamily="sans-serif-bold"
-                    app:layout_constraintTop_toTopOf="@id/icon_sd"
-                    app:layout_constraintBottom_toBottomOf="@id/icon_sd"
-                    app:layout_constraintStart_toEndOf="@id/icon_sd" />
+                        <TextView
+                            android:id="@+id/text_storage_free"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="0 B free / 0 B"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="10sp"
+                            app:layout_constraintTop_toBottomOf="@id/progress_storage"
+                            app:layout_constraintStart_toStartOf="parent" />
+                    </androidx.constraintlayout.widget.ConstraintLayout>
 
-                <TextView
-                    android:id="@+id/text_sd_storage_free"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Not Mounted"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp"
-                    app:layout_constraintTop_toTopOf="@id/icon_sd"
-                    app:layout_constraintBottom_toBottomOf="@id/icon_sd"
-                    app:layout_constraintEnd_toEndOf="parent" />
+                    <!-- Volume 2: MicroSD Card -->
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:id="@+id/card_storage_microsd"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_rounded_card_12dp"
+                        android:padding="12dp">
 
-                <ProgressBar
-                    android:id="@+id/progress_sd_storage"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="0dp"
-                    android:layout_height="6dp"
-                    android:layout_marginTop="6dp"
-                    android:max="100"
-                    android:progress="0"
-                    android:progressTint="@color/accent_blue"
-                    android:progressBackgroundTint="@color/surface_container_high"
-                    app:layout_constraintTop_toBottomOf="@id/icon_sd"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent" />
+                        <ImageView
+                            android:id="@+id/icon_microsd"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_sd_storage_24"
+                            app:tint="@color/accent_blue"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintStart_toStartOf="parent" />
 
-                <!-- Row 3: Telemetry Footer -->
-                <TextView
-                    android:id="@+id/text_storage_allocated"
-                    android:layout_width="wrap_content"
+                        <TextView
+                            android:id="@+id/text_sd_storage_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="MicroSD"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp"
+                            android:fontFamily="sans-serif-bold"
+                            app:layout_constraintTop_toTopOf="@id/icon_microsd"
+                            app:layout_constraintBottom_toBottomOf="@id/icon_microsd"
+                            app:layout_constraintStart_toEndOf="@id/icon_microsd" />
+
+                        <ProgressBar
+                            android:id="@+id/progress_sd_storage"
+                            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                            android:layout_width="0dp"
+                            android:layout_height="5dp"
+                            android:layout_marginTop="10dp"
+                            android:max="100"
+                            android:progress="0"
+                            android:progressTint="@color/accent_blue"
+                            android:progressBackgroundTint="@color/surface_container_high"
+                            app:layout_constraintTop_toBottomOf="@id/icon_microsd"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent" />
+
+                        <TextView
+                            android:id="@+id/text_sd_storage_free"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="Not Mounted"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="10sp"
+                            app:layout_constraintTop_toBottomOf="@id/progress_sd_storage"
+                            app:layout_constraintStart_toStartOf="parent" />
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+                </LinearLayout>
+
+                <!-- Scan & Index Filters Entry Card -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/card_trigger_exclusions"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:text="Audio: 0 MB • APK: 0 MB • RAM: 0 MB"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp"
-                    app:layout_constraintTop_toBottomOf="@id/progress_sd_storage"
-                    app:layout_constraintStart_toStartOf="parent" />
+                    android:background="@drawable/bg_rounded_card_12dp"
+                    android:padding="12dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
 
-                <TextView
-                    android:id="@+id/text_storage_status"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="Details"
-                    android:textColor="@color/accent_blue"
-                    android:textSize="11sp"
-                    app:layout_constraintTop_toBottomOf="@id/progress_sd_storage"
-                    app:layout_constraintEnd_toEndOf="parent" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
+                    <ImageView
+                        android:id="@+id/icon_shield"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:src="@drawable/ic_auto_awesome_24"
+                        app:tint="@color/accent_blue"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="8dp"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/icon_shield"
+                        app:layout_constraintEnd_toStartOf="@id/arrow_open_exclusions">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Scan &amp; Index Filters"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp"
+                            android:fontFamily="sans-serif-bold" />
+
+                        <TextView
+                            android:id="@+id/text_exclusions_summary"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="WhatsApp &amp; short clips shielded • Tap to configure"
+                            android:textColor="@color/accent_blue"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/arrow_open_exclusions"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_keyboard_arrow_down_24"
+                        android:rotation="270"
+                        app:tint="@color/text_secondary"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </LinearLayout>
 
             <!-- Navigation Path & Actions Row -->
             <LinearLayout

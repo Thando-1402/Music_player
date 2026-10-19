@@ -1,0 +1,579 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/exclusions_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_window"
+    android:fitsSystemWindows="true">
+
+    <!-- Top App Bar -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar_exclusions"
+        android:layout_width="0dp"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/bg_window"
+        app:navigationIcon="@drawable/ic_arrow_back_24"
+        app:navigationIconTint="@color/text_primary"
+        app:title="Folder Scan &amp; Exclusions"
+        app:subtitle="Manage Library Indexing"
+        app:titleTextColor="@color/text_primary"
+        app:subtitleTextColor="@color/text_secondary"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btn_action_refresh" />
+
+    <androidx.appcompat.widget.AppCompatImageButton
+        android:id="@+id/btn_action_refresh"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_sync_24"
+        app:tint="@color/text_primary"
+        android:contentDescription="Refresh Scan"
+        app:layout_constraintTop_toTopOf="@id/toolbar_exclusions"
+        app:layout_constraintBottom_toBottomOf="@id/toolbar_exclusions"
+        app:layout_constraintEnd_toStartOf="@id/btn_action_apply_top" />
+
+    <androidx.appcompat.widget.AppCompatImageButton
+        android:id="@+id/btn_action_apply_top"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_check_24"
+        app:tint="@color/accent_blue"
+        android:contentDescription="Commit Exclusions"
+        app:layout_constraintTop_toTopOf="@id/toolbar_exclusions"
+        app:layout_constraintBottom_toBottomOf="@id/toolbar_exclusions"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingBottom="84dp"
+        app:layout_constraintTop_toBottomOf="@id/toolbar_exclusions"
+        app:layout_constraintBottom_toTopOf="@id/bottom_action_bar_container"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="8dp">
+
+            <!-- Information Hero Card -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_rounded_card_12dp"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/title_scan_hero"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="Library Scan Filters"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif-bold"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/badge_isolation_status" />
+
+                <TextView
+                    android:id="@+id/badge_isolation_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="● ISOLATION ACTIVE"
+                    android:textColor="@color/accent_blue"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif-bold"
+                    android:background="@color/surface_container_high"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <TextView
+                    android:id="@+id/desc_scan_hero"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Excluded directories are completely omitted from library indexing and shuffle sweeps."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp"
+                    app:layout_constraintTop_toBottomOf="@id/title_scan_hero"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <TextView
+                    android:id="@+id/summary_excluded_count"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="🛡 Active Filters Shielding Non-Music Assets"
+                    android:textColor="@color/accent_blue"
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-medium"
+                    app:layout_constraintTop_toBottomOf="@id/desc_scan_hero"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="8dp"
+                android:text="AUTOMATED FILTERS"
+                android:textColor="@color/accent_blue"
+                android:textSize="12sp"
+                android:fontFamily="sans-serif-bold"
+                android:letterSpacing="0.08" />
+
+            <!-- Filter Switch 1: Hidden Folders -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/surface_card"
+                android:padding="14dp"
+                android:layout_marginBottom="2dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="12dp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/switch_ignore_hidden">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ignore Hidden Folders (.*)"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Bypasses system caches and hidden directories"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_ignore_hidden"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- Filter Switch 2: Respect .nomedia -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/surface_card"
+                android:padding="14dp"
+                android:layout_marginBottom="2dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="12dp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/switch_respect_nomedia">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Respect .nomedia markers"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Honors Android standard media suppression flags"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_respect_nomedia"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- Filter Switch 3: Short Audio Clips -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/surface_card"
+                android:padding="14dp"
+                android:layout_marginBottom="2dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="12dp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/switch_filter_short">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Filter Short Clips (&lt; 30s)"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Suppresses notification pings &amp; voice notes"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_filter_short"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- Storage Volume Tabs -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_tab_internal"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="Internal Storage"
+                    android:textSize="12sp"
+                    android:textColor="@color/on_accent_blue"
+                    app:backgroundTint="@color/accent_blue"
+                    app:cornerRadius="8dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_tab_microsd"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:text="MicroSD"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    app:backgroundTint="@color/surface_card"
+                    app:cornerRadius="8dp" />
+            </LinearLayout>
+
+            <!-- Monitored Paths Header -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:id="@+id/label_paths"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MONITORED RULES"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-bold"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <TextView
+                    android:id="@+id/btn_exclude_all"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Enable All"
+                    android:textColor="@color/accent_blue"
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-medium"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/text_dot_sep" />
+
+                <TextView
+                    android:id="@+id/text_dot_sep"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" • "
+                    android:textColor="@color/divider_line"
+                    android:textSize="12sp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/btn_reset_all" />
+
+                <TextView
+                    android:id="@+id/btn_reset_all"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Restore Hidden Folders"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-medium"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- Monitored Path 1: Podcasts & Audiobooks -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_rounded_card_12dp"
+                android:padding="12dp"
+                android:layout_marginBottom="8dp">
+
+                <ImageView
+                    android:id="@+id/icon_folder_podcasts"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_folder_24"
+                    app:tint="@color/accent_blue"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="10dp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/icon_folder_podcasts"
+                    app:layout_constraintEnd_toStartOf="@id/switch_exclude_podcasts">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Podcasts &amp; Audiobooks"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:fontFamily="sans-serif-bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="/storage/emulated/0/Music/Podcasts"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace" />
+                </LinearLayout>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_exclude_podcasts"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- Monitored Path 2: WhatsApp Audio & Media -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_rounded_card_12dp"
+                android:padding="12dp"
+                android:layout_marginBottom="8dp">
+
+                <ImageView
+                    android:id="@+id/icon_folder_whatsapp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_folder_24"
+                    app:tint="@color/accent_blue"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="10dp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/icon_folder_whatsapp"
+                    app:layout_constraintEnd_toStartOf="@id/switch_exclude_whatsapp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="WhatsApp Audio &amp; Voice Notes (AUD-WA)"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:fontFamily="sans-serif-bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="/storage/emulated/0/Android/media/com.whatsapp/"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace" />
+                </LinearLayout>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_exclude_whatsapp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- Monitored Path 3: Hi-Res Audio Vault -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_rounded_card_12dp"
+                android:padding="12dp"
+                android:layout_marginBottom="8dp">
+
+                <ImageView
+                    android:id="@+id/icon_folder_hires"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_folder_24"
+                    app:tint="@color/accent_blue"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="10dp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/icon_folder_hires"
+                    app:layout_constraintEnd_toStartOf="@id/switch_exclude_hires">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Music &amp; MicroSD Audio"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:fontFamily="sans-serif-bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Primary Music Library (Indexed)"
+                        android:textColor="@color/accent_blue"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_exclude_hires"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Bottom Sticky Action Bar -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/bottom_action_bar_container"
+        android:layout_width="0dp"
+        android:layout_height="72dp"
+        android:background="@color/surface_card"
+        android:paddingHorizontal="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_restore_defaults"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:text="Defaults"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            app:icon="@drawable/ic_sync_24"
+            app:iconSize="16dp"
+            app:backgroundTint="@color/surface_container_high"
+            app:cornerRadius="10dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_apply_and_rescan"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="12dp"
+            android:text="Apply &amp; Rescan"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-bold"
+            android:textColor="@color/on_accent_blue"
+            app:icon="@drawable/ic_sync_24"
+            app:iconTint="@color/on_accent_blue"
+            app:iconSize="16dp"
+            app:backgroundTint="@color/accent_blue"
+            app:cornerRadius="10dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/btn_restore_defaults"
+            app:layout_constraintEnd_toEndOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

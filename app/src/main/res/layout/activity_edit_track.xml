@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/edit_track_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_window"
+    android:fitsSystemWindows="true">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar_edit_track"
+        android:layout_width="0dp"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/bg_window"
+        app:navigationIcon="@drawable/ic_close_24"
+        app:navigationIconTint="@color/text_primary"
+        app:title="Edit Track Details"
+        app:titleTextColor="@color/text_primary"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btn_save_track_header" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_save_track_header"
+        style="@style/Widget.Material3.Button"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_marginEnd="16dp"
+        android:text="Save"
+        android:textSize="12sp"
+        android:textColor="@color/on_accent_blue"
+        app:backgroundTint="@color/accent_blue"
+        app:cornerRadius="18dp"
+        app:layout_constraintTop_toTopOf="@id/toolbar_edit_track"
+        app:layout_constraintBottom_toBottomOf="@id/toolbar_edit_track"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingBottom="84dp"
+        app:layout_constraintTop_toBottomOf="@id/toolbar_edit_track"
+        app:layout_constraintBottom_toTopOf="@id/track_save_footer_container"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="8dp">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_rounded_card_12dp"
+                android:padding="16dp">
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/edit_track_artwork"
+                    android:layout_width="140dp"
+                    android:layout_height="140dp"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/ic_album_placeholder_large"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Rounded12dp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_overlay_change_art"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="Change Art"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_primary"
+                    app:icon="@drawable/ic_photo_camera_24"
+                    app:iconSize="14dp"
+                    app:backgroundTint="@color/surface_container_high"
+                    app:cornerRadius="18dp"
+                    app:layout_constraintTop_toTopOf="@id/edit_track_artwork"
+                    app:layout_constraintBottom_toBottomOf="@id/edit_track_artwork"
+                    app:layout_constraintStart_toStartOf="@id/edit_track_artwork"
+                    app:layout_constraintEnd_toEndOf="@id/edit_track_artwork" />
+
+                <LinearLayout
+                    android:id="@+id/row_art_actions"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="16dp"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    app:layout_constraintTop_toBottomOf="@id/edit_track_artwork">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_extract_art"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:text="Extract"
+                        android:textSize="11sp"
+                        app:icon="@drawable/ic_sync_24"
+                        app:iconSize="13dp"
+                        app:backgroundTint="@color/surface_container_high"
+                        android:textColor="@color/text_primary"
+                        app:cornerRadius="8dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_gallery_art"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:text="Gallery"
+                        android:textSize="11sp"
+                        app:icon="@drawable/ic_auto_awesome_24"
+                        app:iconSize="13dp"
+                        app:backgroundTint="@color/surface_container_high"
+                        android:textColor="@color/text_primary"
+                        app:cornerRadius="8dp" />
+
+                    <androidx.appcompat.widget.AppCompatImageButton
+                        android:id="@+id/btn_delete_art"
+                        android:layout_width="48dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_rounded_card_12dp"
+                        android:src="@drawable/ic_close_24"
+                        app:tint="#FF5252"
+                        android:contentDescription="Remove Art" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/text_track_file_specs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="Local Audio File"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:gravity="center"
+                    app:layout_constraintTop_toBottomOf="@id/row_art_actions" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="8dp"
+                android:text="PRIMARY ID3 TAGS (ID3v2.4)"
+                android:textColor="@color/accent_blue"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-bold"
+                android:letterSpacing="0.08" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:hint="Track Title"
+                app:boxStrokeColor="@color/accent_blue"
+                app:boxBackgroundColor="@color/surface_card">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/input_track_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:hint="Artist"
+                app:boxStrokeColor="@color/accent_blue"
+                app:boxBackgroundColor="@color/surface_card">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/input_track_artist"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:hint="Album"
+                app:boxStrokeColor="@color/accent_blue"
+                app:boxBackgroundColor="@color/surface_card">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/input_track_album"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="10dp">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    android:hint="Track #"
+                    app:boxBackgroundColor="@color/surface_card">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/input_track_num"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:hint="Year / Genre"
+                    app:boxBackgroundColor="@color/surface_card">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/input_track_year_genre"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_rounded_card_12dp"
+                android:padding="14dp"
+                android:layout_marginTop="8dp">
+
+                <TextView
+                    android:id="@+id/label_lrc"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="Synchronized LRC Lyrics"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-bold"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/badge_lrc_synced" />
+
+                <TextView
+                    android:id="@+id/badge_lrc_synced"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="LOCAL"
+                    android:textColor="@color/accent_blue"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif-bold"
+                    android:background="@color/surface_container_high"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <TextView
+                    android:id="@+id/snippet_lrc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="No lyrics saved yet. Tap below to paste .lrc or text lyrics."
+                    android:textColor="@color/accent_blue"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:lineSpacingExtra="3dp"
+                    app:layout_constraintTop_toBottomOf="@id/label_lrc" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_edit_lyrics"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="38dp"
+                    android:layout_marginTop="12dp"
+                    android:text="Edit / Paste Lyrics (.lrc)"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_primary"
+                    app:icon="@drawable/ic_queue_music_24"
+                    app:iconSize="14dp"
+                    app:backgroundTint="@color/surface_container_high"
+                    app:layout_constraintTop_toBottomOf="@id/snippet_lrc" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/track_save_footer_container"
+        android:layout_width="0dp"
+        android:layout_height="72dp"
+        android:background="@color/surface_card"
+        android:paddingHorizontal="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_save_track_bottom"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Save Changes"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-bold"
+            android:textColor="@color/on_accent_blue"
+            app:backgroundTint="@color/accent_blue"
+            app:cornerRadius="10dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

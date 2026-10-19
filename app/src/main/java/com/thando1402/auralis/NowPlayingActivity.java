@@ -221,10 +221,14 @@ public class NowPlayingActivity extends AppCompatActivity {
         super.onStart();
         updateHardwareDacUI();
         SessionToken sessionToken = new SessionToken(this, new ComponentName(this, PlaybackService.class));
-        controllerFuture = new MediaController.Builder(this, sessionToken).buildAsync();
-        controllerFuture.addListener(() -> {
+        final ListenableFuture<MediaController> future = new MediaController.Builder(this, sessionToken).buildAsync();
+        controllerFuture = future;
+        future.addListener(() -> {
+            if (future != controllerFuture || future.isCancelled() || isFinishing() || isDestroyed()) {
+                return;
+            }
             try {
-                mediaController = controllerFuture.get();
+                mediaController = future.get();
                 mediaController.addListener(playerListener);
                 updateMetadataUI();
                 updateProgressUI();
@@ -234,7 +238,7 @@ public class NowPlayingActivity extends AppCompatActivity {
                 btnRepeat.setImageTintList(ColorStateList.valueOf(
                         mediaController.getRepeatMode() != Player.REPEAT_MODE_OFF ? COLOR_ACCENT_BLUE : COLOR_INACTIVE));
                 progressHandler.post(updateProgressRunnable);
-            } catch (ExecutionException | InterruptedException e) {
+            } catch (ExecutionException | InterruptedException | java.util.concurrent.CancellationException e) {
                 e.printStackTrace();
             }
         }, ContextCompat.getMainExecutor(this));
@@ -246,10 +250,19 @@ public class NowPlayingActivity extends AppCompatActivity {
         progressHandler.removeCallbacks(updateProgressRunnable);
         if (mediaController != null) {
             mediaController.removeListener(playerListener);
+            mediaController = null;
         }
         if (controllerFuture != null) {
             MediaController.releaseFuture(controllerFuture);
+            controllerFuture = null;
         }
+    }
+
+    private String getCurrentSongKey() {
+        if (mediaController == null) return "";
+        MediaItem currentItem = mediaController.getCurrentMediaItem();
+        if (currentItem == null) return "";
+        return currentItem.mediaId;
     }
 
     private void updateMetadataUI() {
@@ -281,6 +294,13 @@ public class NowPlayingActivity extends AppCompatActivity {
 
         textTitle.setText(title != null && title.length() > 0 ? title : "Unknown Track");
         textArtist.setText(artist != null && artist.length() > 0 ? artist : "Unknown Artist");
+        
+        String songKey = getCurrentSongKey();
+        isFavorite = SongMetadataManager.isFavorite(this, songKey);
+        if (btnFavorite != null) {
+            btnFavorite.setImageResource(isFavorite ? R.drawable.ic_favorite_24 : R.drawable.ic_favorite_border_24);
+            btnFavorite.setImageTintList(ColorStateList.valueOf(isFavorite ? COLOR_ACCENT_BLUE : COLOR_PRIMARY_WHITE));
+        }
     }
 
     private void updateProgressUI() {
@@ -375,6 +395,7 @@ public class NowPlayingActivity extends AppCompatActivity {
 
     private void animateFavoriteButton() {
         isFavorite = !isFavorite;
+        SongMetadataManager.setFavorite(this, getCurrentSongKey(), isFavorite);
 
         ObjectAnimator scaleDownX = ObjectAnimator.ofFloat(btnFavorite, View.SCALE_X, 0.7f);
         ObjectAnimator scaleDownY = ObjectAnimator.ofFloat(btnFavorite, View.SCALE_Y, 0.7f);

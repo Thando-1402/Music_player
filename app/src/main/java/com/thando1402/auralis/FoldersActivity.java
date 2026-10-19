@@ -47,7 +47,8 @@ import java.util.concurrent.Executors;
 
 public class FoldersActivity extends AppCompatActivity {
 
-    private TextView textStorageTitle, textStorageFree, textStorageAllocated, textStorageStatus;
+    private final ExecutorService scanExecutor = Executors.newSingleThreadExecutor();
+    private TextView textStorageTitle, textStorageFree;
     private TextView textSdStorageTitle, textSdStorageFree;
     private ProgressBar progressStorage, progressSdStorage;
     private TextView textBreadcrumbs, textDirectoriesHeader, textLooseFilesHeader;
@@ -95,8 +96,6 @@ public class FoldersActivity extends AppCompatActivity {
 
         textStorageTitle = findViewById(R.id.text_storage_title);
         textStorageFree = findViewById(R.id.text_storage_free);
-        textStorageAllocated = findViewById(R.id.text_storage_allocated);
-        textStorageStatus = findViewById(R.id.text_storage_status);
         progressStorage = findViewById(R.id.progress_storage);
 
         textSdStorageTitle = findViewById(R.id.text_sd_storage_title);
@@ -126,9 +125,19 @@ public class FoldersActivity extends AppCompatActivity {
 
         setupMiniPlayerControls();
 
-        View cardStorage = findViewById(R.id.card_storage);
-        if (cardStorage != null) {
-            cardStorage.setOnClickListener(v -> showStorageAndTelemetryDialog());
+        View cardTriggerExclusions = findViewById(R.id.card_trigger_exclusions);
+        if (cardTriggerExclusions != null) {
+            cardTriggerExclusions.setOnClickListener(v -> startActivity(new Intent(FoldersActivity.this, FolderExclusionsActivity.class)));
+        }
+
+        View cardStorageInternal = findViewById(R.id.card_storage_internal);
+        if (cardStorageInternal != null) {
+            cardStorageInternal.setOnClickListener(v -> showStorageAndTelemetryDialog());
+        }
+
+        View cardStorageMicrosd = findViewById(R.id.card_storage_microsd);
+        if (cardStorageMicrosd != null) {
+            cardStorageMicrosd.setOnClickListener(v -> showStorageAndTelemetryDialog());
         }
 
         btnUpDir.setOnClickListener(v -> {
@@ -148,11 +157,18 @@ public class FoldersActivity extends AppCompatActivity {
 
         btnScanMedia.setOnClickListener(v -> {
             Toast.makeText(this, "Rescanning storage & MicroSD...", Toast.LENGTH_SHORT).show();
-            MediaScannerConnection.scanFile(this,
-                    new String[]{Environment.getExternalStorageDirectory().getAbsolutePath()},
-                    null,
-                    (path, uri) -> runOnUiThread(this::scanStorageAndAudioFolders));
-            scanStorageAndAudioFolders();
+            
+            List<String> pathsToScan = new ArrayList<>(folderSongsMap.keySet());
+            pathsToScan.add(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC).getAbsolutePath());
+            
+            if (pathsToScan.isEmpty()) {
+                scanStorageAndAudioFolders();
+            } else {
+                MediaScannerConnection.scanFile(this,
+                        pathsToScan.toArray(new String[0]),
+                        null,
+                        (path, uri) -> runOnUiThread(this::scanStorageAndAudioFolders));
+            }
         });
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav_folders);
@@ -209,10 +225,6 @@ public class FoldersActivity extends AppCompatActivity {
             if (textSdStorageFree != null) textSdStorageFree.setText("No MicroSD Detected");
             if (progressSdStorage != null) progressSdStorage.setProgress(0);
         }
-
-        if (textStorageAllocated != null) {
-            textStorageAllocated.setText("Audio: " + audioSizeStr + " • APK: " + apkSizeStr + " • RAM: " + ramMb + "MB");
-        }
     }
 
     private void showStorageAndTelemetryDialog() {
@@ -243,16 +255,33 @@ public class FoldersActivity extends AppCompatActivity {
                     updateStorageCardUI();
                     Toast.makeText(this, "Storage preference updated", Toast.LENGTH_SHORT).show();
                 })
+                .setNeutralButton("Filter Settings", (d, w) -> {
+                    boolean currentlyHiding = AudioFilterManager.isHideWhatsAppEnabled(this);
+                    new AlertDialog.Builder(this)
+                            .setTitle("Filter Settings")
+                            .setItems(new String[]{
+                                    currentlyHiding ? "Show WhatsApp Audio" : "Hide WhatsApp Audio",
+                                    "Restore Hidden Folders"
+                            }, (dialog, which) -> {
+                                if (which == 0) {
+                                    AudioFilterManager.setHideWhatsAppEnabled(this, !currentlyHiding);
+                                    scanStorageAndAudioFolders();
+                                } else if (which == 1) {
+                                    AudioFilterManager.clearExcludedFolders(this);
+                                    scanStorageAndAudioFolders();
+                                    Toast.makeText(this, "Hidden folders restored", Toast.LENGTH_SHORT).show();
+                                }
+                            }).show();
+                })
                 .setNegativeButton("Close", null)
                 .show();
     }
 
     private void scanStorageAndAudioFolders() {
         updateStorageCardUI();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
         Handler handler = new Handler(Looper.getMainLooper());
 
-        executor.execute(() -> {
+        scanExecutor.execute(() -> {
             Map<String, List<Song>> groupedSongs = new LinkedHashMap<>();
             Map<String, Long> groupedBytes = new LinkedHashMap<>();
             long audioBytesSum = 0;
@@ -267,7 +296,8 @@ public class FoldersActivity extends AppCompatActivity {
                     MediaStore.Audio.Media.ARTIST,
                     MediaStore.Audio.Media.DURATION,
                     MediaStore.Audio.Media.DATA,
-                    MediaStore.Audio.Media.SIZE
+                    MediaStore.Audio.Media.SIZE,
+                    MediaStore.MediaColumns.VOLUME_NAME
             };
 
             String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
@@ -282,6 +312,7 @@ public class FoldersActivity extends AppCompatActivity {
                     int durCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
                     int dataCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
                     int sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE);
+                    int volumeCol = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? cursor.getColumnIndex(MediaStore.MediaColumns.VOLUME_NAME) : -1;
 
                     while (cursor.moveToNext()) {
                         long id = cursor.getLong(idCol);
@@ -290,9 +321,26 @@ public class FoldersActivity extends AppCompatActivity {
                         long duration = cursor.getLong(durCol);
                         String fullPath = cursor.getString(dataCol);
                         long fileSize = cursor.getLong(sizeCol);
+                        
+                        if (AudioFilterManager.shouldExcludeTrack(FoldersActivity.this, title, fullPath)) continue;
 
                         audioBytesSum += Math.max(0, fileSize);
-                        Uri contentUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
+                        
+                        Uri contentUri;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && volumeCol != -1) {
+                            String volumeName = cursor.getString(volumeCol);
+                            if (volumeName != null && !volumeName.isEmpty()) {
+                                contentUri = ContentUris.withAppendedId(
+                                        MediaStore.Audio.Media.getContentUri(volumeName), id);
+                            } else {
+                                contentUri = ContentUris.withAppendedId(
+                                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
+                            }
+                        } else {
+                            contentUri = ContentUris.withAppendedId(
+                                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
+                        }
+                        
                         if (title == null || title.isEmpty()) title = "Unknown Track";
                         if (artist == null || artist.isEmpty()) artist = "Unknown Artist";
 
@@ -315,6 +363,7 @@ public class FoldersActivity extends AppCompatActivity {
 
             final long finalAudioBytes = audioBytesSum;
             handler.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
                 totalAudioBytes = finalAudioBytes;
                 folderSongsMap.clear();
                 folderSongsMap.putAll(groupedSongs);
@@ -328,24 +377,15 @@ public class FoldersActivity extends AppCompatActivity {
     }
 
     private void sortAndRender() {
-        AuralisTelemetryManager.StorageSnapshot snap = AuralisTelemetryManager.getStorageSnapshot(this);
         allFolders.clear();
         for (Map.Entry<String, List<Song>> entry : folderSongsMap.entrySet()) {
             String path = entry.getKey();
-            String name = new File(path).getName();
-            if (name.isEmpty()) name = path;
-            
-            if (snap.hasSdCard && snap.sdCardRootPath != null && path.startsWith(snap.sdCardRootPath)) {
-                name = "[MicroSD] " + name;
-            } else if (path.startsWith("/storage/emulated/0") || !path.contains("whatsapp") ) {
-                 name = "[Phone] " + name;
-            }
+            String rawName = new File(path).getName();
+            if (rawName.isEmpty()) rawName = path;
 
-            // Exclude whatsapp audio
-            if (!path.toLowerCase().contains("whatsapp")) {
-               long bytes = folderBytesMap.getOrDefault(path, 0L);
-               allFolders.add(new FolderItem(name, path, entry.getValue().size(), bytes));
-            }
+            String badge = AudioFilterManager.isMicroSdPath(path) ? "[MicroSD] " : "[Phone] ";
+            long bytes = folderBytesMap.getOrDefault(path, 0L);
+            allFolders.add(new FolderItem(badge + rawName, path, entry.getValue().size(), bytes));
         }
 
         if (sortByName) {
@@ -362,35 +402,49 @@ public class FoldersActivity extends AppCompatActivity {
             // Root view: show all audio directories, and show all tracks below
             textBreadcrumbs.setText("All Storage  >  Audio Directories");
             if (textDirectoriesHeader != null) {
-                textDirectoriesHeader.setText("DIRECTORIES (" + allFolders.size() + ")");
+                textDirectoriesHeader.setText("AUDIO DIRECTORIES (" + allFolders.size() + ") • Long-press to hide");
+                textDirectoriesHeader.setVisibility(View.VISIBLE);
             }
             recyclerFolders.setVisibility(View.VISIBLE);
-            recyclerFolders.setAdapter(new FolderAdapter(allFolders, folder -> {
-                selectedFolderPath = folder.getPath();
-                renderCurrentDirectoryState();
-            }));
+            if (textLooseFilesHeader != null) textLooseFilesHeader.setVisibility(View.GONE);
+            recyclerLooseFiles.setVisibility(View.GONE);
+            
+            recyclerFolders.setAdapter(new FolderAdapter(allFolders, new FolderAdapter.OnFolderClickListener() {
+                @Override
+                public void onFolderClick(FolderItem folder) {
+                    selectedFolderPath = folder.getPath();
+                    renderCurrentDirectoryState();
+                }
 
-            List<Song> allTracksPreview = new ArrayList<>();
-            for (List<Song> list : folderSongsMap.values()) {
-                allTracksPreview.addAll(list);
-            }
-            if (textLooseFilesHeader != null) {
-                textLooseFilesHeader.setText("ALL INDEXED FILES (" + allTracksPreview.size() + ")");
-            }
-            bindSongsList(allTracksPreview);
+                @Override
+                public void onFolderLongClick(FolderItem folder) {
+                    new AlertDialog.Builder(FoldersActivity.this)
+                            .setTitle("Hide Folder")
+                            .setMessage("Hide this folder from Auralis Library & Folders?")
+                            .setPositiveButton("Hide", (dialog, which) -> {
+                                AudioFilterManager.addExcludedFolder(FoldersActivity.this, folder.getPath());
+                                scanStorageAndAudioFolders();
+                            })
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                }
+            }));
         } else {
             // Inside a specific folder
             String folderName = new File(selectedFolderPath).getName();
             textBreadcrumbs.setText("Storage  >  " + folderName);
             if (textDirectoriesHeader != null) {
-                textDirectoriesHeader.setText("SUBDIRECTORIES (0)");
+                textDirectoriesHeader.setVisibility(View.GONE);
             }
             recyclerFolders.setVisibility(View.GONE);
 
-            List<Song> folderSongs = folderSongsMap.getOrDefault(selectedFolderPath, new ArrayList<>());
             if (textLooseFilesHeader != null) {
-                textLooseFilesHeader.setText("FILES IN " + folderName.toUpperCase() + " (" + folderSongs.size() + ")");
+                textLooseFilesHeader.setVisibility(View.VISIBLE);
+                textLooseFilesHeader.setText("FILES IN " + folderName.toUpperCase());
             }
+            recyclerLooseFiles.setVisibility(View.VISIBLE);
+            
+            List<Song> folderSongs = folderSongsMap.getOrDefault(selectedFolderPath, new ArrayList<>());
             bindSongsList(folderSongs);
         }
     }
@@ -408,6 +462,7 @@ public class FoldersActivity extends AppCompatActivity {
                         if (s.getCustomCoverUri() != null) meta.setArtworkUri(s.getCustomCoverUri());
                         mediaController.addMediaItem(new MediaItem.Builder()
                                 .setUri(s.getUri())
+                                .setMediaId(s.getUri().toString())
                                 .setMediaMetadata(meta.build())
                                 .build());
                     }
@@ -420,23 +475,37 @@ public class FoldersActivity extends AppCompatActivity {
             @Override
             public void onSongOptionsClick(int position) {
                 Song s = songs.get(position);
-                Toast.makeText(FoldersActivity.this, s.getTitle() + " (" + s.getArtist() + ")", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(FoldersActivity.this, EditTrackActivity.class);
+                intent.putExtra("EXTRA_SONG_URI", s.getUri().toString());
+                intent.putExtra("EXTRA_SONG_TITLE", s.getTitle());
+                intent.putExtra("EXTRA_SONG_ARTIST", s.getArtist());
+                startActivity(intent);
             }
         });
         recyclerLooseFiles.setAdapter(adapter);
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        scanStorageAndAudioFolders();
+    }
+
+    @Override
     protected void onStart() {
         super.onStart();
         SessionToken sessionToken = new SessionToken(this, new ComponentName(this, PlaybackService.class));
-        controllerFuture = new MediaController.Builder(this, sessionToken).buildAsync();
-        controllerFuture.addListener(() -> {
+        final ListenableFuture<MediaController> future = new MediaController.Builder(this, sessionToken).buildAsync();
+        controllerFuture = future;
+        future.addListener(() -> {
+            if (future != controllerFuture || future.isCancelled() || isFinishing() || isDestroyed()) {
+                return;
+            }
             try {
-                mediaController = controllerFuture.get();
+                mediaController = future.get();
                 mediaController.addListener(playerListener);
                 syncMiniPlayerUI();
-            } catch (ExecutionException | InterruptedException e) {
+            } catch (ExecutionException | InterruptedException | java.util.concurrent.CancellationException e) {
                 e.printStackTrace();
             }
         }, ContextCompat.getMainExecutor(this));
@@ -453,6 +522,12 @@ public class FoldersActivity extends AppCompatActivity {
             MediaController.releaseFuture(controllerFuture);
             controllerFuture = null;
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        scanExecutor.shutdownNow();
     }
 
     private void syncMiniPlayerUI() {
