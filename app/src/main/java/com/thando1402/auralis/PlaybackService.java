@@ -2,7 +2,6 @@ package com.thando1402.auralis;
 
 import androidx.media3.common.AudioAttributes;
 import androidx.media3.common.C;
-import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.session.MediaSession;
 import androidx.media3.session.MediaSessionService;
@@ -18,11 +17,6 @@ import androidx.media3.session.MediaNotification;
 public class PlaybackService extends MediaSessionService {
     private ExoPlayer player;
     private MediaSession mediaSession;
-    private static volatile int activeAudioSessionId = 0;
-
-    public static int getActiveAudioSessionId() {
-        return activeAudioSessionId;
-    }
 
     @androidx.annotation.OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
     @Override
@@ -48,14 +42,6 @@ public class PlaybackService extends MediaSessionService {
                 .setAudioAttributes(AudioAttributes.DEFAULT, true)
                 .setHandleAudioBecomingNoisy(true)
                 .build();
-
-        activeAudioSessionId = player.getAudioSessionId();
-        player.addListener(new Player.Listener() {
-            @Override
-            public void onAudioSessionIdChanged(int audioSessionId) {
-                activeAudioSessionId = audioSessionId;
-            }
-        });
 
         // 3. Configure the Custom Notification Provider
         DefaultMediaNotificationProvider notificationProvider = new DefaultMediaNotificationProvider.Builder(this)
