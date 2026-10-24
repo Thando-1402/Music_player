@@ -1,16 +1,1 @@
-*.iml
-.gradle/
-/local.properties
-local.properties
-/.idea/
-.DS_Store
-/build/
-build/
-/captures
-.externalNativeBuild
-.cxx
-LogCat/
-*.logcat
-AI_HANDOFF.md
-AI_handoff.md
-app/google-services.json
+*.iml\n.gradle\n/local.properties\n/.idea\n.DS_Store\n/build\n/captures\n.externalNativeBuild\n.cxx\nlocal.properties\n\n# Local Android device logs\nLogCat/\n*.logcat\n\n# Local AI handoff & internal development notes\nAI_HANDOFF.md\nAI_handoff.md\n\n# Local Firebase config\napp/google-services.json
