@@ -2,6 +2,7 @@ package com.thando1402.auralis;
 
 import android.Manifest;
 import android.content.ComponentName;
+import android.content.ContentUris;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -39,6 +40,7 @@ import com.google.android.material.imageview.ShapeableImageView;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -51,9 +53,9 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
 
     private RecyclerView recyclerSongs;
     private SongAdapter adapter;
-    private List<Song> songList = new ArrayList<>();
-    private List<Song> displayedList = new ArrayList<>();
-    
+    private final List<Song> songList = new ArrayList<>();
+    private final List<Song> displayedList = new ArrayList<>();
+
     private TextView textLibraryStats;
     private View emptyStateContainer;
     private SearchView searchViewLibrary;
@@ -98,11 +100,11 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
 
         recyclerSongs = findViewById(R.id.recycler_view_songs);
         recyclerSongs.setLayoutManager(new LinearLayoutManager(this));
-        
+
         textLibraryStats = findViewById(R.id.text_library_stats);
         emptyStateContainer = findViewById(R.id.empty_state_container);
         searchViewLibrary = findViewById(R.id.search_view_library);
-        
+
         miniTitle = findViewById(R.id.mini_title);
         miniSubtitle = findViewById(R.id.mini_subtitle);
         btnPrev = findViewById(R.id.mini_prev);
@@ -121,9 +123,19 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
                 } else if (id == R.id.action_open_profile) {
                     startActivity(new Intent(MainActivity.this, ProfileSettingsActivity.class));
                     return true;
+                } else if (id == R.id.action_sort_title) {
+                    Collections.sort(displayedList, (a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()));
+                    if (adapter != null) adapter.notifyDataSetChanged();
+                    Toast.makeText(this, "Sorted by Title (A-Z)", Toast.LENGTH_SHORT).show();
+                    return true;
+                } else if (id == R.id.action_sort_artist) {
+                    Collections.sort(displayedList, (a, b) -> a.getArtist().compareToIgnoreCase(b.getArtist()));
+                    if (adapter != null) adapter.notifyDataSetChanged();
+                    Toast.makeText(this, "Sorted by Artist", Toast.LENGTH_SHORT).show();
+                    return true;
                 } else if (id == R.id.action_rescan) {
                     checkPermissionAndScan();
-                    Toast.makeText(this, "Rescanning storage...", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Rescanning Phone & MicroSD...", Toast.LENGTH_SHORT).show();
                     return true;
                 }
                 return false;
@@ -132,6 +144,28 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
 
         setupSearchFilter();
 
+        Chip chipAll = findViewById(R.id.chip_all_songs);
+        if (chipAll != null) {
+            chipAll.setOnClickListener(v -> {
+                Collections.sort(displayedList, (a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()));
+                if (adapter != null) adapter.notifyDataSetChanged();
+            });
+        }
+        Chip chipAlbums = findViewById(R.id.chip_albums);
+        if (chipAlbums != null) {
+            chipAlbums.setOnClickListener(v -> {
+                startActivity(new Intent(MainActivity.this, PlaylistsActivity.class));
+                overridePendingTransition(0, 0);
+            });
+        }
+        Chip chipArtists = findViewById(R.id.chip_artists);
+        if (chipArtists != null) {
+            chipArtists.setOnClickListener(v -> {
+                Collections.sort(displayedList, (a, b) -> a.getArtist().compareToIgnoreCase(b.getArtist()));
+                if (adapter != null) adapter.notifyDataSetChanged();
+                Toast.makeText(this, "Grouped by Artist", Toast.LENGTH_SHORT).show();
+            });
+        }
         Chip chipFolders = findViewById(R.id.chip_folders);
         if (chipFolders != null) {
             chipFolders.setOnClickListener(v -> {
@@ -190,6 +224,7 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
                 public boolean onQueryTextSubmit(String query) {
                     return false;
                 }
+
                 @Override
                 public boolean onQueryTextChange(String newText) {
                     filterLibrary(newText);
@@ -207,7 +242,7 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
             String lower = query.toLowerCase().trim();
             for (Song s : songList) {
                 if ((s.getTitle() != null && s.getTitle().toLowerCase().contains(lower)) ||
-                    (s.getArtist() != null && s.getArtist().toLowerCase().contains(lower))) {
+                        (s.getArtist() != null && s.getArtist().toLowerCase().contains(lower))) {
                     displayedList.add(s);
                 }
             }
@@ -247,20 +282,26 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
     private void scanMedia() {
         scanExecutor.execute(() -> {
             List<Song> newSongs = new ArrayList<>();
-            Uri collection;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                collection = MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL);
-            } else {
-                collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-            }
+            Uri collection = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                    ? MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+                    : MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
 
-            String[] projection = new String[]{
-                    MediaStore.Audio.Media._ID,
-                    MediaStore.Audio.Media.TITLE,
-                    MediaStore.Audio.Media.ARTIST,
-                    MediaStore.Audio.Media.DATA,
-                    MediaStore.Audio.Media.DURATION
-            };
+            String[] projection = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                    ? new String[]{
+                        MediaStore.Audio.Media._ID,
+                        MediaStore.Audio.Media.TITLE,
+                        MediaStore.Audio.Media.ARTIST,
+                        MediaStore.Audio.Media.DATA,
+                        MediaStore.Audio.Media.DURATION,
+                        MediaStore.Audio.Media.VOLUME_NAME
+                    }
+                    : new String[]{
+                        MediaStore.Audio.Media._ID,
+                        MediaStore.Audio.Media.TITLE,
+                        MediaStore.Audio.Media.ARTIST,
+                        MediaStore.Audio.Media.DATA,
+                        MediaStore.Audio.Media.DURATION
+                    };
 
             String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
 
@@ -271,6 +312,7 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
                     int artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
                     int dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
                     int durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
+                    int volumeColumn = cursor.getColumnIndex(MediaStore.Audio.Media.VOLUME_NAME);
 
                     while (cursor.moveToNext()) {
                         long id = cursor.getLong(idColumn);
@@ -279,7 +321,17 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
                         String data = cursor.getString(dataColumn);
                         long duration = cursor.getLong(durationColumn);
 
-                        Uri contentUri = Uri.withAppendedPath(collection, String.valueOf(id));
+                        Uri contentUri;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && volumeColumn != -1) {
+                            String volName = cursor.getString(volumeColumn);
+                            if (volName != null && !volName.isEmpty()) {
+                                contentUri = MediaStore.Audio.Media.getContentUri(volName, id);
+                            } else {
+                                contentUri = ContentUris.withAppendedId(collection, id);
+                            }
+                        } else {
+                            contentUri = ContentUris.withAppendedId(collection, id);
+                        }
 
                         if (!AudioFilterManager.shouldExcludeTrack(this, title, data, duration)) {
                             Song temp = new Song(title, artist, contentUri, duration);
@@ -297,7 +349,7 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
                 songList.addAll(newSongs);
                 displayedList.clear();
                 displayedList.addAll(songList);
-                
+
                 if (adapter == null) {
                     adapter = new SongAdapter(displayedList, this);
                     recyclerSongs.setAdapter(adapter);
@@ -305,14 +357,14 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
                 } else {
                     adapter.notifyDataSetChanged();
                 }
-                
+
                 updateLibraryStats();
             });
         });
     }
 
     private void animateRecyclerViewEntrance() {
-        if (recyclerSongs == null) return;
+        if (recyclerSongs == null || recyclerSongs.getAdapter() == null) return;
         LayoutAnimationController controller = AnimationUtils.loadLayoutAnimation(this, R.anim.layout_anim_fall_down);
         recyclerSongs.setLayoutAnimation(controller);
         recyclerSongs.getAdapter().notifyDataSetChanged();
@@ -321,7 +373,11 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
 
     private void updateLibraryStats() {
         if (textLibraryStats != null) {
-            textLibraryStats.setText(displayedList.size() + " Hi-Res Tracks");
+            textLibraryStats.setText("All Local Tracks (" + displayedList.size() + " files)");
+        }
+        Chip chipAll = findViewById(R.id.chip_all_songs);
+        if (chipAll != null) {
+            chipAll.setText("All Songs (" + songList.size() + ")");
         }
         if (emptyStateContainer != null) {
             emptyStateContainer.setVisibility(displayedList.isEmpty() ? View.VISIBLE : View.GONE);
@@ -340,7 +396,7 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
                 MediaMetadata.Builder metaBuilder = new MediaMetadata.Builder()
                         .setTitle(song.getTitle())
                         .setArtist(song.getArtist());
-                
+
                 if (song.getCustomCoverUri() != null) {
                     metaBuilder.setArtworkUri(song.getCustomCoverUri());
                 }
@@ -371,13 +427,11 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
             miniPlayerContainer.animate()
                     .scaleX(0.97f).scaleY(0.97f)
                     .setDuration(100)
-                    .withEndAction(() -> {
-                        miniPlayerContainer.animate()
-                                .scaleX(1.0f).scaleY(1.0f)
-                                .setDuration(250)
-                                .setInterpolator(new OvershootInterpolator(2.0f))
-                                .start();
-                    }).start();
+                    .withEndAction(() -> miniPlayerContainer.animate()
+                            .scaleX(1.0f).scaleY(1.0f)
+                            .setDuration(250)
+                            .setInterpolator(new OvershootInterpolator(2.0f))
+                            .start()).start();
         }
     }
 
@@ -465,7 +519,7 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
             CharSequence artist = currentItem.mediaMetadata.artist;
             if (miniTitle != null && title != null && title.length() > 0) miniTitle.setText(title);
             if (miniSubtitle != null && artist != null && artist.length() > 0) miniSubtitle.setText(artist);
-            
+
             if (miniArt != null) {
                 if (currentItem.mediaMetadata.artworkUri != null) {
                     miniArt.setImageURI(currentItem.mediaMetadata.artworkUri);

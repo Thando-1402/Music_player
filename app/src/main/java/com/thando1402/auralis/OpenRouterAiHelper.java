@@ -34,7 +34,18 @@ public class OpenRouterAiHelper {
 
     public static String getApiKey(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        return prefs.getString(KEY_OPENROUTER_API, "");
+        String manualKey = prefs.getString(KEY_OPENROUTER_API, "");
+        if (manualKey != null && !manualKey.trim().isEmpty()) {
+            return manualKey.trim();
+        }
+        try {
+            String buildKey = context.getString(R.string.default_openrouter_key);
+            if (buildKey != null && !buildKey.trim().isEmpty()) {
+                return buildKey.trim();
+            }
+        } catch (Exception ignored) {
+        }
+        return "";
     }
 
     public static boolean hasApiKey(Context context) {

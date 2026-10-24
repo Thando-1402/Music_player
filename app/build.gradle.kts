@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
 }
@@ -21,6 +23,14 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        val localProps = Properties()
+        val localPropsFile = rootProject.file("local.properties")
+        if (localPropsFile.exists()) {
+            localPropsFile.inputStream().use { localProps.load(it) }
+        }
+        val openRouterKey = localProps.getProperty("OPENROUTER_API_KEY", "")
+        resValue("string", "default_openrouter_key", openRouterKey)
     }
 
     buildTypes {
@@ -30,6 +40,9 @@ android {
                 packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
             }
         }
+    }
+    buildFeatures {
+        resValues = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
