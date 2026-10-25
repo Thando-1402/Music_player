@@ -1,28 +1,20 @@
 package com.thando1402.auralis;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.animation.AnimatorSet;
-import android.animation.ObjectAnimator;
 import android.content.ComponentName;
-import android.content.Intent;
 import android.content.Context;
-import android.content.res.ColorStateList;
-import android.graphics.Color;
+import android.content.Intent;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.View;
 import android.view.animation.OvershootInterpolator;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.AppCompatImageButton;
-import androidx.appcompat.widget.AppCompatSeekBar;
 import androidx.core.content.ContextCompat;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
@@ -31,65 +23,54 @@ import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.imageview.ShapeableImageView;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.Locale;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
 public class NowPlayingActivity extends AppCompatActivity {
 
-    private FloatingActionButton btnPlayPause;
-    private ShapeableImageView heroAlbumArt;
-    private AppCompatImageButton btnFavorite, btnShuffle, btnRepeat, btnCollapse, btnPrev, btnNext;
-    private TextView textTitle, textArtist, textElapsed, textRemaining, badgeDsp;
-    private AppCompatSeekBar seekBar;
-
     private MediaController mediaController;
     private ListenableFuture<MediaController> controllerFuture;
+
+    private TextView tvTitle, tvArtist, tvTimeCurrent, tvTimeRemaining;
+    private TextView tvDeviceName, tvDeviceCodec;
+    private ImageView ivArt, btnPlayPause, btnFav, btnShuffle, btnRepeat;
+    private SeekBar seekBar;
+    private boolean isTracking = false;
+
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
-    private boolean isUserSeeking = false;
-    private boolean isFavorite = false;
-
-    private final int COLOR_ACCENT_BLUE = Color.parseColor("#00B0FF");
-    private final int COLOR_INACTIVE = Color.parseColor("#757575");
-    private final int COLOR_PRIMARY_WHITE = Color.parseColor("#FFFFFF");
-
-    private final Runnable updateProgressRunnable = new Runnable() {
+    private final Runnable progressRunnable = new Runnable() {
         @Override
         public void run() {
-            if (mediaController != null && mediaController.isPlaying() && !isUserSeeking) {
-                updateProgressUI();
-            }
-            progressHandler.postDelayed(this, 500);
+            syncProgress();
+            progressHandler.postDelayed(this, 500); // 500ms for Nokia 1.4 battery saving
         }
     };
 
     private final Player.Listener playerListener = new Player.Listener() {
         @Override
         public void onMediaItemTransition(MediaItem mediaItem, int reason) {
-            updateMetadataUI();
-            updateProgressUI();
+            syncMetadata();
         }
-
         @Override
         public void onMediaMetadataChanged(MediaMetadata mediaMetadata) {
-            updateMetadataUI();
+            syncMetadata();
         }
-
         @Override
         public void onIsPlayingChanged(boolean isPlaying) {
-            animatePlayPauseState(isPlaying);
+            syncPlayPauseState();
+            if (isPlaying) progressHandler.post(progressRunnable);
+            else progressHandler.removeCallbacks(progressRunnable);
         }
-
         @Override
         public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {
-            btnShuffle.setImageTintList(ColorStateList.valueOf(shuffleModeEnabled ? COLOR_ACCENT_BLUE : COLOR_INACTIVE));
+            syncShuffleState();
         }
-
         @Override
         public void onRepeatModeChanged(int repeatMode) {
-            btnRepeat.setImageTintList(ColorStateList.valueOf(repeatMode != Player.REPEAT_MODE_OFF ? COLOR_ACCENT_BLUE : COLOR_INACTIVE));
+            syncRepeatState();
         }
     };
 
@@ -98,156 +79,146 @@ public class NowPlayingActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_now_playing);
 
-        btnPlayPause = findViewById(R.id.btn_play_pause_hero);
-        heroAlbumArt = findViewById(R.id.hero_album_art);
-        btnFavorite = findViewById(R.id.btn_favorite);
-        btnShuffle = findViewById(R.id.btn_shuffle);
-        btnRepeat = findViewById(R.id.btn_repeat);
-        btnCollapse = findViewById(R.id.btn_collapse);
-        btnPrev = findViewById(R.id.btn_previous);
-        btnNext = findViewById(R.id.btn_next);
-        textTitle = findViewById(R.id.np_track_title);
-        textArtist = findViewById(R.id.np_artist_name);
-        textElapsed = findViewById(R.id.text_elapsed_time);
-        textRemaining = findViewById(R.id.text_remaining_time);
-        seekBar = findViewById(R.id.track_seek_bar);
-        badgeDsp = findViewById(R.id.badge_dsp_profile);
+        tvTitle = findViewById(R.id.tv_track_title);
+        tvTitle.setSelected(true); // For marquee text
+        tvArtist = findViewById(R.id.tv_track_artist_album);
+        tvTimeCurrent = findViewById(R.id.tv_time_current);
+        tvTimeRemaining = findViewById(R.id.tv_time_remaining);
+        tvDeviceName = findViewById(R.id.tv_connected_device_name);
+        tvDeviceCodec = findViewById(R.id.tv_connected_device_codec);
+        ivArt = findViewById(R.id.iv_hero_album_art);
+        seekBar = findViewById(R.id.slider_playback_progress);
 
-        // 1. Play/Pause Button with 60fps Micro-Bounce
+        findViewById(R.id.btn_collapse).setOnClickListener(v -> {
+            finish();
+            overridePendingTransition(0, R.anim.slide_down_out);
+        });
+        findViewById(R.id.btn_queue).setOnClickListener(v -> {
+            // Queue logic placeholder
+        });
+
+        btnPlayPause = findViewById(R.id.btn_play_pause_fab);
         btnPlayPause.setOnClickListener(v -> {
             if (mediaController != null) {
-                if (mediaController.isPlaying()) {
-                    mediaController.pause();
-                } else {
-                    mediaController.play();
-                }
+                if (mediaController.isPlaying()) mediaController.pause();
+                else mediaController.play();
+                btnPlayPause.animate().scaleX(0.8f).scaleY(0.8f).setDuration(100)
+                        .withEndAction(() -> btnPlayPause.animate().scaleX(1f).scaleY(1f).setInterpolator(new OvershootInterpolator()).start()).start();
             }
         });
 
-        // 2. Previous & Next Controls
-        btnPrev.setOnClickListener(v -> {
-            if (mediaController != null) {
-                mediaController.seekToPrevious();
-            }
+        findViewById(R.id.btn_skip_previous).setOnClickListener(v -> {
+            if (mediaController != null) mediaController.seekToPrevious();
         });
-        btnNext.setOnClickListener(v -> {
-            if (mediaController != null) {
-                mediaController.seekToNext();
-            }
+        findViewById(R.id.btn_skip_next).setOnClickListener(v -> {
+            if (mediaController != null) mediaController.seekToNext();
         });
 
-        // 3. Favorite Heart Spring Pop Animation
-        btnFavorite.setOnClickListener(v -> animateFavoriteButton());
-
-        // 4. Shuffle Toggle with 180-deg Rotation
+        btnShuffle = findViewById(R.id.btn_toggle_shuffle);
         btnShuffle.setOnClickListener(v -> {
             if (mediaController != null) {
-                boolean newState = !mediaController.getShuffleModeEnabled();
-                mediaController.setShuffleModeEnabled(newState);
-                btnShuffle.animate().rotationBy(180f).setDuration(220).start();
-                btnShuffle.setImageTintList(ColorStateList.valueOf(newState ? COLOR_ACCENT_BLUE : COLOR_INACTIVE));
+                mediaController.setShuffleModeEnabled(!mediaController.getShuffleModeEnabled());
             }
         });
 
-        // 5. Repeat Mode Cycle (Off -> All -> One)
+        btnRepeat = findViewById(R.id.btn_toggle_repeat);
         btnRepeat.setOnClickListener(v -> {
             if (mediaController != null) {
-                int current = mediaController.getRepeatMode();
-                int next = (current == Player.REPEAT_MODE_OFF) ? Player.REPEAT_MODE_ALL :
-                           (current == Player.REPEAT_MODE_ALL) ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF;
-                mediaController.setRepeatMode(next);
-                btnRepeat.setImageTintList(ColorStateList.valueOf(next != Player.REPEAT_MODE_OFF ? COLOR_ACCENT_BLUE : COLOR_INACTIVE));
+                int mode = mediaController.getRepeatMode();
+                mediaController.setRepeatMode(mode == Player.REPEAT_MODE_OFF ? Player.REPEAT_MODE_ALL : (mode == Player.REPEAT_MODE_ALL ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF));
             }
         });
 
-        // 6. SeekBar Scrubbing
+        findViewById(R.id.btn_lyrics_sheet).setOnClickListener(v -> {
+            startActivity(new Intent(NowPlayingActivity.this, PlaylistsActivity.class));
+        });
+
+        btnFav = findViewById(R.id.btn_toggle_favorite);
+
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser && mediaController != null) {
                     long duration = mediaController.getDuration();
                     if (duration > 0) {
-                        long newPosition = (duration * progress) / 1000L;
-                        textElapsed.setText(formatTime(newPosition));
-                        textRemaining.setText("-" + formatTime(Math.max(0, duration - newPosition)));
+                        long newPos = (duration * progress) / 1000L;
+                        tvTimeCurrent.setText(formatTime(newPos));
+                        tvTimeRemaining.setText("-" + formatTime(duration - newPos));
                     }
                 }
             }
-
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-                isUserSeeking = true;
+                isTracking = true;
             }
-
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 if (mediaController != null) {
                     long duration = mediaController.getDuration();
                     if (duration > 0) {
-                        long newPosition = (duration * seekBar.getProgress()) / 1000L;
-                        mediaController.seekTo(newPosition);
+                        mediaController.seekTo((duration * seekBar.getProgress()) / 1000L);
                     }
                 }
-                isUserSeeking = false;
+                isTracking = false;
             }
         });
 
-        // 7. DSP Badge opens Equalizer
-        badgeDsp.setOnClickListener(v -> startActivity(new Intent(this, EqualizerActivity.class)));
-
-        // Update audio route on pill click
-        View dacPill = findViewById(R.id.dac_hardware_pill);
-        if (dacPill != null) {
-            dacPill.setOnClickListener(v -> updateHardwareDacUI());
-        }
-
-        // 8. Collapse / Back Transitions
-        btnCollapse.setOnClickListener(v -> closeWithAnimation());
-        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
-            @Override
-            public void handleOnBackPressed() {
-                closeWithAnimation();
-            }
-        });
+        detectActiveDacOutput();
     }
 
-    private void closeWithAnimation() {
-        finish();
-        overridePendingTransition(0, R.anim.slide_down_out);
+    private void detectActiveDacOutput() {
+        if (tvDeviceName == null || tvDeviceCodec == null) return;
+        String deviceTitle = "Internal Hi-Fi Speaker DAC";
+        String codecLabel = "24-BIT PCM";
+        try {
+            AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            if (am != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                for (AudioDeviceInfo d : am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+                    int type = d.getType();
+                    String prod = d.getProductName() != null ? d.getProductName().toString() : "";
+                    if (type == AudioDeviceInfo.TYPE_WIRED_HEADSET || type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES) {
+                        deviceTitle = "3.5mm Wired Headphones";
+                        codecLabel = "ANALOG 24/96";
+                        break;
+                    } else if (type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) {
+                        deviceTitle = !prod.isEmpty() ? prod : "Bluetooth Audio";
+                        codecLabel = "A2DP / LDAC";
+                        break;
+                    } else if (type == AudioDeviceInfo.TYPE_USB_HEADSET || type == AudioDeviceInfo.TYPE_USB_DEVICE) {
+                        deviceTitle = !prod.isEmpty() ? prod : "External USB DAC";
+                        codecLabel = "USB BIT-PERFECT";
+                        break;
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        tvDeviceName.setText(deviceTitle);
+        tvDeviceCodec.setText(codecLabel);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        updateHardwareDacUI();
         SessionToken sessionToken = new SessionToken(this, new ComponentName(this, PlaybackService.class));
-        final ListenableFuture<MediaController> future = new MediaController.Builder(this, sessionToken).buildAsync();
-        controllerFuture = future;
-        future.addListener(() -> {
-            if (future != controllerFuture || future.isCancelled() || isFinishing() || isDestroyed()) {
-                return;
-            }
+        controllerFuture = new MediaController.Builder(this, sessionToken).buildAsync();
+        controllerFuture.addListener(() -> {
             try {
-                mediaController = future.get();
+                mediaController = controllerFuture.get();
                 mediaController.addListener(playerListener);
-                updateMetadataUI();
-                updateProgressUI();
-                animatePlayPauseState(mediaController.isPlaying());
-                btnShuffle.setImageTintList(ColorStateList.valueOf(
-                        mediaController.getShuffleModeEnabled() ? COLOR_ACCENT_BLUE : COLOR_INACTIVE));
-                btnRepeat.setImageTintList(ColorStateList.valueOf(
-                        mediaController.getRepeatMode() != Player.REPEAT_MODE_OFF ? COLOR_ACCENT_BLUE : COLOR_INACTIVE));
-                progressHandler.post(updateProgressRunnable);
-            } catch (ExecutionException | InterruptedException | java.util.concurrent.CancellationException e) {
-                e.printStackTrace();
-            }
+                syncMetadata();
+                syncPlayPauseState();
+                syncShuffleState();
+                syncRepeatState();
+                if (mediaController.isPlaying()) progressHandler.post(progressRunnable);
+            } catch (Exception ignored) {}
         }, ContextCompat.getMainExecutor(this));
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        progressHandler.removeCallbacks(updateProgressRunnable);
+        progressHandler.removeCallbacks(progressRunnable);
         if (mediaController != null) {
             mediaController.removeListener(playerListener);
             mediaController = null;
@@ -258,169 +229,50 @@ public class NowPlayingActivity extends AppCompatActivity {
         }
     }
 
-    private String getCurrentSongKey() {
-        if (mediaController == null) return "";
-        MediaItem currentItem = mediaController.getCurrentMediaItem();
-        if (currentItem == null) return "";
-        return currentItem.mediaId;
-    }
-
-    private void updateMetadataUI() {
+    private void syncMetadata() {
         if (mediaController == null) return;
-        MediaMetadata meta = mediaController.getMediaMetadata();
-        MediaItem currentItem = mediaController.getCurrentMediaItem();
-
-        CharSequence title = meta.title;
-        CharSequence artist = meta.artist;
-
-        if ((title == null || title.length() == 0) && currentItem != null && currentItem.mediaMetadata != null) {
-            title = currentItem.mediaMetadata.title;
-        }
-        if ((artist == null || artist.length() == 0) && currentItem != null && currentItem.mediaMetadata != null) {
-            artist = currentItem.mediaMetadata.artist;
-        }
-
-        android.net.Uri artworkUri = meta.artworkUri;
-        if (artworkUri == null && currentItem != null && currentItem.mediaMetadata != null) {
-            artworkUri = currentItem.mediaMetadata.artworkUri;
-        }
-        if (heroAlbumArt != null) {
-            if (artworkUri != null) {
-                heroAlbumArt.setImageURI(artworkUri);
+        MediaItem item = mediaController.getCurrentMediaItem();
+        if (item != null && item.mediaMetadata != null) {
+            tvTitle.setText(item.mediaMetadata.title != null ? item.mediaMetadata.title : "Unknown Track");
+            tvArtist.setText(item.mediaMetadata.artist != null ? item.mediaMetadata.artist : "Unknown Artist");
+            if (item.mediaMetadata.artworkUri != null) {
+                ivArt.setImageURI(item.mediaMetadata.artworkUri);
             } else {
-                heroAlbumArt.setImageResource(R.drawable.ic_album_placeholder_large);
+                ivArt.setImageResource(R.drawable.ic_album_placeholder);
             }
         }
-
-        textTitle.setText(title != null && title.length() > 0 ? title : "Unknown Track");
-        textArtist.setText(artist != null && artist.length() > 0 ? artist : "Unknown Artist");
-        
-        String songKey = getCurrentSongKey();
-        isFavorite = SongMetadataManager.isFavorite(this, songKey);
-        if (btnFavorite != null) {
-            btnFavorite.setImageResource(isFavorite ? R.drawable.ic_favorite_24 : R.drawable.ic_favorite_border_24);
-            btnFavorite.setImageTintList(ColorStateList.valueOf(isFavorite ? COLOR_ACCENT_BLUE : COLOR_PRIMARY_WHITE));
-        }
+        syncProgress();
     }
 
-    private void updateProgressUI() {
+    private void syncPlayPauseState() {
         if (mediaController == null) return;
-        long duration = mediaController.getDuration();
-        long position = mediaController.getCurrentPosition();
-        if (duration > 0) {
-            int progress = (int) ((position * 1000L) / duration);
-            seekBar.setProgress(progress);
-            textElapsed.setText(formatTime(position));
-            textRemaining.setText("-" + formatTime(Math.max(0, duration - position)));
+        ((FloatingActionButton) btnPlayPause).setImageResource(mediaController.isPlaying() ? R.drawable.ic_pause_24 : R.drawable.ic_play_arrow_24);
+    }
+
+    private void syncShuffleState() {
+        if (mediaController == null || btnShuffle == null) return;
+        btnShuffle.setColorFilter(ContextCompat.getColor(this, mediaController.getShuffleModeEnabled() ? R.color.accent_blue : R.color.text_secondary));
+    }
+
+    private void syncRepeatState() {
+        if (mediaController == null || btnRepeat == null) return;
+        int mode = mediaController.getRepeatMode();
+        btnRepeat.setColorFilter(ContextCompat.getColor(this, mode != Player.REPEAT_MODE_OFF ? R.color.accent_blue : R.color.text_secondary));
+    }
+
+    private void syncProgress() {
+        if (mediaController == null || isTracking) return;
+        long pos = mediaController.getCurrentPosition();
+        long dur = mediaController.getDuration();
+        if (dur > 0) {
+            seekBar.setProgress((int) ((pos * 1000L) / dur));
+            tvTimeCurrent.setText(formatTime(pos));
+            tvTimeRemaining.setText("-" + formatTime(dur - pos));
         }
     }
 
     private String formatTime(long ms) {
-        long totalSeconds = ms / 1000;
-        long minutes = totalSeconds / 60;
-        long seconds = totalSeconds % 60;
-        return String.format(Locale.US, "%d:%02d", minutes, seconds);
-    }
-
-    private void updateHardwareDacUI() {
-        AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        if (audioManager == null) return;
-
-        TextView textDevice = findViewById(R.id.text_output_device);
-        TextView textCodec = findViewById(R.id.text_output_codec);
-        android.widget.ImageView iconOutput = findViewById(R.id.icon_cast_output);
-
-        if (textDevice == null || textCodec == null || iconOutput == null) return;
-
-        String deviceName = "Internal Speaker";
-        String codecDetails = "Direct PCM • Built-in DAC active";
-        int iconRes = R.drawable.ic_headphones_24; // We'll use headphones icon as default fallback
-
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            AudioDeviceInfo[] devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
-            for (AudioDeviceInfo device : devices) {
-                if (device.getType() == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP || 
-                    device.getType() == AudioDeviceInfo.TYPE_BLE_HEADSET || 
-                    device.getType() == AudioDeviceInfo.TYPE_BLE_SPEAKER) {
-                    
-                    deviceName = device.getProductName() != null ? device.getProductName().toString() : "Bluetooth Device";
-                    codecDetails = "A2DP Wireless Audio Route";
-                    iconRes = R.drawable.ic_headphones_24; 
-                    break;
-                } else if (device.getType() == AudioDeviceInfo.TYPE_WIRED_HEADPHONES || 
-                           device.getType() == AudioDeviceInfo.TYPE_WIRED_HEADSET) {
-                    
-                    deviceName = "Wired Headphones";
-                    codecDetails = "Analog Output • Internal DAC";
-                    iconRes = R.drawable.ic_headphones_24;
-                    break;
-                } else if (device.getType() == AudioDeviceInfo.TYPE_USB_DEVICE || 
-                           device.getType() == AudioDeviceInfo.TYPE_USB_HEADSET) {
-                    
-                    deviceName = device.getProductName() != null ? device.getProductName().toString() : "USB DAC / Audio Device";
-                    codecDetails = "Bit-Perfect Digital Passthrough";
-                    iconRes = R.drawable.ic_headphones_24;
-                    break;
-                }
-            }
-        }
-
-        textDevice.setText(deviceName);
-        textCodec.setText(codecDetails);
-        iconOutput.setImageResource(iconRes);
-    }
-
-    private void animatePlayPauseState(boolean playing) {
-        btnPlayPause.animate()
-                .scaleX(0.88f)
-                .scaleY(0.88f)
-                .setDuration(80)
-                .withEndAction(() -> {
-                    btnPlayPause.setImageResource(playing ? R.drawable.ic_pause_24 : R.drawable.ic_play_arrow_36);
-                    btnPlayPause.animate()
-                            .scaleX(1.0f)
-                            .scaleY(1.0f)
-                            .setDuration(120)
-                            .setInterpolator(new OvershootInterpolator(2.0f))
-                            .start();
-                }).start();
-
-        float targetScale = playing ? 1.0f : 0.94f;
-        heroAlbumArt.animate()
-                .scaleX(targetScale)
-                .scaleY(targetScale)
-                .setDuration(240)
-                .start();
-    }
-
-    private void animateFavoriteButton() {
-        isFavorite = !isFavorite;
-        SongMetadataManager.setFavorite(this, getCurrentSongKey(), isFavorite);
-
-        ObjectAnimator scaleDownX = ObjectAnimator.ofFloat(btnFavorite, View.SCALE_X, 0.7f);
-        ObjectAnimator scaleDownY = ObjectAnimator.ofFloat(btnFavorite, View.SCALE_Y, 0.7f);
-        scaleDownX.setDuration(100);
-        scaleDownY.setDuration(100);
-
-        ObjectAnimator scaleUpX = ObjectAnimator.ofFloat(btnFavorite, View.SCALE_X, 1.25f, 1.0f);
-        ObjectAnimator scaleUpY = ObjectAnimator.ofFloat(btnFavorite, View.SCALE_Y, 1.25f, 1.0f);
-        scaleUpX.setDuration(250);
-        scaleUpY.setDuration(250);
-        scaleUpX.setInterpolator(new OvershootInterpolator(3.0f));
-        scaleUpY.setInterpolator(new OvershootInterpolator(3.0f));
-
-        scaleDownX.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                btnFavorite.setImageResource(isFavorite ? R.drawable.ic_favorite_24 : R.drawable.ic_favorite_border_24);
-                btnFavorite.setImageTintList(ColorStateList.valueOf(isFavorite ? COLOR_ACCENT_BLUE : COLOR_PRIMARY_WHITE));
-            }
-        });
-
-        AnimatorSet set = new AnimatorSet();
-        set.play(scaleDownX).with(scaleDownY);
-        set.play(scaleUpX).after(scaleDownX);
-        set.play(scaleUpY).after(scaleDownY);
-        set.start();
+        long totalSec = Math.max(0, ms / 1000);
+        return String.format(Locale.US, "%d:%02d", totalSec / 60, totalSec % 60);
     }
 }

@@ -1,5 +1,10 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.google.gms.google.services)
+    alias(libs.plugins.google.firebase.crashlytics)
+    alias(libs.plugins.google.firebase.firebase.perf)
 }
 
 if (file("google-services.json").exists()) {
@@ -21,6 +26,18 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        val localProps = Properties()
+        val localPropsFile = rootProject.file("local.properties")
+        if (localPropsFile.exists()) {
+            localPropsFile.inputStream().use { localProps.load(it) }
+        }
+        val openRouterKey = localProps.getProperty("OPENROUTER_API_KEY", "")
+        resValue("string", "default_openrouter_key", openRouterKey)
+    }
+    
+    buildFeatures {
+        resValues = true
     }
 
     buildTypes {
@@ -42,8 +59,15 @@ dependencies {
     implementation(libs.appcompat)
     implementation(libs.constraintlayout)
     implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.perf)
     implementation(libs.material)
     
+    implementation("com.google.firebase:firebase-ai:18.1.0")
+    implementation("com.google.firebase:firebase-appcheck-debug:20.0.0")
+    implementation("com.google.guava:guava:31.0.1-android")
+    implementation("org.reactivestreams:reactive-streams:1.0.4")
+
     // AndroidX Media3 for playback
     implementation("androidx.media3:media3-exoplayer:1.11.1")
     implementation("androidx.media3:media3-session:1.11.1")

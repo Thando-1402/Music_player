@@ -21,6 +21,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
     public interface OnSongClickListener {
         void onSongClick(int position);
         default void onSongOptionsClick(int position) {}
+        default void onSongAiCleanClick(int position) {}
     }
 
     private final List<Song> songs;
@@ -90,6 +91,9 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
                     int id = item.getItemId();
                     if (id == R.id.action_play_now) {
                         listener.onSongClick(pos);
+                        return true;
+                    } else if (id == R.id.action_ai_clean_song) {
+                        listener.onSongAiCleanClick(pos);
                         return true;
                     } else if (id == R.id.action_edit_tags) {
                         listener.onSongOptionsClick(pos);
