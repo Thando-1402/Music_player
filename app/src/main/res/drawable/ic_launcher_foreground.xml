@@ -1,0 +1,71 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Outer concentric soundwave ring (left) -->
+    <path
+        android:strokeColor="#00B0FF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M32,38 C24,47 24,61 32,70" />
+
+    <!-- Outer concentric soundwave ring (right) -->
+    <path
+        android:strokeColor="#00B0FF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M76,38 C84,47 84,61 76,70" />
+
+    <!-- Mid concentric soundwave ring (left) -->
+    <path
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M38,43 C33,49 33,59 38,65" />
+
+    <!-- Mid concentric soundwave ring (right) -->
+    <path
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M70,43 C75,49 75,59 70,65" />
+
+    <!-- Central Auralis stylized 'A' soundwave core -->
+    <!-- Left apex stroke -->
+    <path
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M54,32 L44,68" />
+
+    <!-- Right apex stroke -->
+    <path
+        android:strokeColor="#00B0FF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M54,32 L64,68" />
+
+    <!-- Crossbar / audio pulse wave -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M46,56 L62,56" />
+
+    <!-- Apex frequency dot -->
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M54,32m-3,0a3,3 0,1,1 6,0a3,3 0,1,1 -6,0" />
+
+</vector>

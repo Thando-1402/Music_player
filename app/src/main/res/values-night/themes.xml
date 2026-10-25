@@ -1,0 +1,26 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Auralis" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowBackground">@color/bg_window</item>
+        <item name="colorPrimary">@color/accent_blue</item>
+        <item name="colorOnPrimary">@color/on_accent_blue</item>
+        <item name="colorSurface">@color/surface_card</item>
+        <item name="android:statusBarColor">@color/bg_window</item>
+        <item name="android:navigationBarColor">@color/bg_window</item>
+    </style>
+
+    <style name="ShapeAppearance.Rounded6dp" parent="ShapeAppearance.Material3.Corner.Small">
+        <item name="cornerSize">6dp</item>
+    </style>
+    <style name="ShapeAppearance.Rounded8dp" parent="ShapeAppearance.Material3.Corner.Medium">
+        <item name="cornerSize">8dp</item>
+    </style>
+    <style name="ShapeAppearance.Rounded12dp" parent="ShapeAppearance.Material3.Corner.Medium">
+        <item name="cornerSize">12dp</item>
+    </style>
+    <style name="ShapeAppearance.Rounded16dp" parent="ShapeAppearance.Material3.Corner.Large">
+        <item name="cornerSize">16dp</item>
+    </style>
+    <style name="ShapeAppearance.Circle" parent="ShapeAppearance.Material3.Corner.Full">
+        <item name="cornerSize">50%</item>
+    </style>
+</resources>

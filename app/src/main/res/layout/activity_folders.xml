@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/folders_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_window"
+    android:fitsSystemWindows="true">
+
+    <!-- Top App Bar -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar_folders"
+        android:layout_width="0dp"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/bg_window"
+        app:title="Auralis"
+        app:titleTextColor="@color/text_primary"
+        app:menu="@menu/folders_menu"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingBottom="72dp"
+        app:layout_constraintTop_toBottomOf="@id/toolbar_folders"
+        app:layout_constraintBottom_toTopOf="@id/mini_player_folders"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp">
+
+            <!-- Dual Storage Horizontal Split Cards + Scan & Index Filters Card -->
+            <LinearLayout
+                android:id="@+id/card_storage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <!-- Volume 1: Internal Storage Card -->
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:id="@+id/card_storage_internal"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/bg_rounded_card_12dp"
+                        android:padding="12dp">
+
+                        <ImageView
+                            android:id="@+id/icon_internal"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_sd_storage_24"
+                            app:tint="@color/accent_blue"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintStart_toStartOf="parent" />
+
+                        <TextView
+                            android:id="@+id/text_storage_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="Internal"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp"
+                            android:fontFamily="sans-serif-bold"
+                            app:layout_constraintTop_toTopOf="@id/icon_internal"
+                            app:layout_constraintBottom_toBottomOf="@id/icon_internal"
+                            app:layout_constraintStart_toEndOf="@id/icon_internal" />
+
+                        <ProgressBar
+                            android:id="@+id/progress_storage"
+                            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                            android:layout_width="0dp"
+                            android:layout_height="5dp"
+                            android:layout_marginTop="10dp"
+                            android:max="100"
+                            android:progress="0"
+                            android:progressTint="@color/accent_blue"
+                            android:progressBackgroundTint="@color/surface_container_high"
+                            app:layout_constraintTop_toBottomOf="@id/icon_internal"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent" />
+
+                        <TextView
+                            android:id="@+id/text_storage_free"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="0 B free / 0 B"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="10sp"
+                            app:layout_constraintTop_toBottomOf="@id/progress_storage"
+                            app:layout_constraintStart_toStartOf="parent" />
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+
+                    <!-- Volume 2: MicroSD Card -->
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:id="@+id/card_storage_microsd"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_rounded_card_12dp"
+                        android:padding="12dp">
+
+                        <ImageView
+                            android:id="@+id/icon_microsd"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_sd_storage_24"
+                            app:tint="@color/accent_blue"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintStart_toStartOf="parent" />
+
+                        <TextView
+                            android:id="@+id/text_sd_storage_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="MicroSD"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp"
+                            android:fontFamily="sans-serif-bold"
+                            app:layout_constraintTop_toTopOf="@id/icon_microsd"
+                            app:layout_constraintBottom_toBottomOf="@id/icon_microsd"
+                            app:layout_constraintStart_toEndOf="@id/icon_microsd" />
+
+                        <ProgressBar
+                            android:id="@+id/progress_sd_storage"
+                            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                            android:layout_width="0dp"
+                            android:layout_height="5dp"
+                            android:layout_marginTop="10dp"
+                            android:max="100"
+                            android:progress="0"
+                            android:progressTint="@color/accent_blue"
+                            android:progressBackgroundTint="@color/surface_container_high"
+                            app:layout_constraintTop_toBottomOf="@id/icon_microsd"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent" />
+
+                        <TextView
+                            android:id="@+id/text_sd_storage_free"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="Not Mounted"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="10sp"
+                            app:layout_constraintTop_toBottomOf="@id/progress_sd_storage"
+                            app:layout_constraintStart_toStartOf="parent" />
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+                </LinearLayout>
+
+                <!-- Scan & Index Filters Entry Card -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/card_trigger_exclusions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_rounded_card_12dp"
+                    android:padding="12dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <ImageView
+                        android:id="@+id/icon_shield"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:src="@drawable/ic_auto_awesome_24"
+                        app:tint="@color/accent_blue"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="8dp"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/icon_shield"
+                        app:layout_constraintEnd_toStartOf="@id/arrow_open_exclusions">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Scan &amp; Index Filters"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp"
+                            android:fontFamily="sans-serif-bold" />
+
+                        <TextView
+                            android:id="@+id/text_exclusions_summary"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="WhatsApp &amp; short clips shielded • Tap to configure"
+                            android:textColor="@color/accent_blue"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/arrow_open_exclusions"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_keyboard_arrow_down_24"
+                        android:rotation="270"
+                        app:tint="@color/text_secondary"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </LinearLayout>
+
+            <!-- Navigation Path & Actions Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_up_dir"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:text="Up"
+                    android:textSize="12sp"
+                    app:icon="@drawable/ic_arrow_upward_24"
+                    app:iconSize="16dp"
+                    app:backgroundTint="@color/surface_card"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:id="@+id/text_path_breadcrumbs"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:text="Internal  >  Music"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp"
+                    android:fontFamily="sans-serif-medium" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_scan_media"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="Scan Media"
+                    android:textSize="12sp"
+                    android:textColor="@color/accent_blue"
+                    app:icon="@drawable/ic_sync_24"
+                    app:iconTint="@color/accent_blue"
+                    app:iconSize="14dp"
+                    app:strokeColor="@color/divider_line" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_sort_folders"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="Name"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    app:icon="@drawable/ic_sort_24"
+                    app:iconSize="14dp"
+                    app:backgroundTint="@color/surface_card" />
+            </LinearLayout>
+
+            <!-- Directories Header -->
+            <TextView
+                android:id="@+id/text_directories_header"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                android:text="DIRECTORIES (4)"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.05" />
+
+            <!-- Folders RecyclerView -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_folders"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                tools:listitem="@layout/item_folder" />
+
+            <!-- Loose Media Header -->
+            <TextView
+                android:id="@+id/text_loose_files_header"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                android:text="LOOSE MEDIA FILES (2)"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.05" />
+
+            <!-- Loose Media Files RecyclerView -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_loose_files"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                tools:listitem="@layout/item_song" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Mini-Player -->
+    <include
+        android:id="@+id/mini_player_folders"
+        layout="@layout/layout_mini_player"
+        android:layout_width="0dp"
+        android:layout_height="64dp"
+        app:layout_constraintBottom_toTopOf="@id/bottom_nav_folders"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Bottom Navigation -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_nav_folders"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:background="@color/bg_window"
+        app:itemIconTint="@color/selector_nav_tint"
+        app:itemTextColor="@color/selector_nav_tint"
+        app:menu="@menu/bottom_nav_menu"
+        app:labelVisibilityMode="labeled"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
