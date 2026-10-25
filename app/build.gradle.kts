@@ -68,6 +68,7 @@ dependencies {
     implementation("com.google.firebase:firebase-appcheck-debug:20.0.0")
     implementation("com.google.guava:guava:31.0.1-android")
     implementation("org.reactivestreams:reactive-streams:1.0.4")
+    implementation("androidx.palette:palette:1.0.0")
 
     // AndroidX Media3 for playback
     implementation("androidx.media3:media3-exoplayer:1.11.1")

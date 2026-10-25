@@ -514,6 +514,7 @@
         android:id="@+id/bottom_nav_eq"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:minHeight="64dp"
         android:background="@color/bg_window"
         app:itemIconTint="@color/selector_nav_tint"
         app:itemTextColor="@color/selector_nav_tint"

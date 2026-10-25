@@ -446,7 +446,7 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
             target.setTitle(cleanTitle);
             target.setArtist(cleanArtist);
             Song dummy = new Song(cleanTitle, cleanArtist, target.getUri(), target.getDuration());
-            SongMetadataManager.saveSongEdit(this, dummy, cleanTitle, cleanArtist, target.getCustomCoverUri());
+            SongMetadataManager.saveSongEdit(this, dummy, cleanTitle, cleanArtist, target.getCustomCoverUri(), target.getLyrics());
             if (adapter != null) adapter.notifyItemChanged(position);
             Toast.makeText(this, (usedCloudAi ? "✨ Cloud AI: " : "✨ Smart Parser: ") + cleanTitle + " — " + cleanArtist, Toast.LENGTH_SHORT).show();
         });

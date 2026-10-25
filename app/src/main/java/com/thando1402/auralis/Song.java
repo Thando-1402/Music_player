@@ -8,12 +8,21 @@ public class Song {
     private final Uri uri;
     private final long duration;
     private Uri customCoverUri;
+    private String lyrics;
 
     public Song(String title, String artist, Uri uri, long duration) {
         this.title = title;
         this.artist = artist;
         this.uri = uri;
         this.duration = duration;
+    }
+
+    public String getLyrics() {
+        return lyrics;
+    }
+
+    public void setLyrics(String lyrics) {
+        this.lyrics = lyrics;
     }
 
     public String getTitle() { return title; }

@@ -112,23 +112,28 @@
         android:id="@+id/iv_hero_album_art"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginBottom="16dp"
-        android:adjustViewBounds="true"
-        android:elevation="4dp"
         android:scaleType="centerCrop"
         android:src="@drawable/ic_album_placeholder"
-        app:layout_constraintBottom_toTopOf="@id/tv_track_title"
-        app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintEnd_toEndOf="@id/guideline_end"
-        app:layout_constraintStart_toStartOf="@id/guideline_start"
-        app:layout_constraintTop_toBottomOf="@id/tv_audio_resolution_badge"
-        app:layout_constraintVertical_bias="0.4"
-        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Medium"
-        app:strokeColor="@color/surface_card"
-        app:strokeWidth="1dp" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="120dp"
+        android:background="@drawable/bg_scrim_top"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="350dp"
+        android:background="@drawable/bg_scrim_bottom"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/tv_lossless_badge"

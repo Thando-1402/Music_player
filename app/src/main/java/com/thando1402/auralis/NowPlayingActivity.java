@@ -3,8 +3,14 @@ package com.thando1402.auralis;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.AudioDeviceInfo;
+import android.media.AudioDeviceCallback;
+import androidx.palette.graphics.Palette;
+import java.io.InputStream;
 import android.media.AudioManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -41,6 +47,7 @@ public class NowPlayingActivity extends AppCompatActivity {
     private MaterialButton btnFav, btnShuffle, btnRepeat;
     private SeekBar seekBar;
     private boolean isTracking = false;
+    private AudioDeviceCallback audioDeviceCallback;
 
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
     private final Runnable progressRunnable = new Runnable() {
@@ -221,6 +228,9 @@ public class NowPlayingActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        
+        audioDeviceCallback = PlaybackStateHelper.registerLiveOutputTracker(this, tvDeviceName, tvDeviceCodec);
+        
         SessionToken sessionToken = new SessionToken(this, new ComponentName(this, PlaybackService.class));
         controllerFuture = new MediaController.Builder(this, sessionToken).buildAsync();
         controllerFuture.addListener(() -> {
@@ -239,6 +249,10 @@ public class NowPlayingActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
+        PlaybackStateHelper.unregisterLiveOutputTracker(this, audioDeviceCallback);
+        if (mediaController != null) {
+            PlaybackStateHelper.saveLastPlayedState(this, mediaController);
+        }
         progressHandler.removeCallbacks(progressRunnable);
         if (mediaController != null) {
             mediaController.removeListener(playerListener);
@@ -257,22 +271,73 @@ public class NowPlayingActivity extends AppCompatActivity {
             tvTitle.setText(item.mediaMetadata.title != null ? item.mediaMetadata.title : "Unknown Track");
             tvArtist.setText(item.mediaMetadata.artist != null ? item.mediaMetadata.artist : "Unknown Artist");
             if (item.mediaMetadata.artworkUri != null) {
-                ivArt.setImageURI(item.mediaMetadata.artworkUri);
+                try {
+                    ivArt.setImageURI(item.mediaMetadata.artworkUri);
+                    if (ivArt.getDrawable() == null) {
+                        ivArt.setImageResource(R.drawable.ic_album_placeholder);
+                    } else {
+                        extractPalette(item.mediaMetadata.artworkUri);
+                    }
+                } catch (Exception e) {
+                    ivArt.setImageResource(R.drawable.ic_album_placeholder);
+                }
             } else {
                 ivArt.setImageResource(R.drawable.ic_album_placeholder);
+                resetPalette();
             }
         }
         syncProgress();
         syncFavoriteState();
     }
 
+    private void extractPalette(Uri artUri) {
+        try (InputStream is = getContentResolver().openInputStream(artUri)) {
+            if (is == null) return;
+            Bitmap bitmap = BitmapFactory.decodeStream(is);
+            if (bitmap != null) {
+                Palette.from(bitmap).generate(palette -> {
+                    if (palette != null && !isDestroyed()) {
+                        int defaultColor = ContextCompat.getColor(this, R.color.accent_blue);
+                        int color = palette.getVibrantColor(palette.getDominantColor(defaultColor));
+                        applyThemeColor(color);
+                    }
+                });
+            }
+        } catch (Exception ignored) {
+        }
+    }
+    
+    private void resetPalette() {
+        applyThemeColor(ContextCompat.getColor(this, R.color.accent_blue));
+    }
+    
+    private void applyThemeColor(int color) {
+        btnPlayPause.setBackgroundTintList(android.content.res.ColorStateList.valueOf(color));
+        seekBar.setProgressTintList(android.content.res.ColorStateList.valueOf(color));
+        seekBar.setThumbTintList(android.content.res.ColorStateList.valueOf(color));
+        
+        // Darken text for badges to ensure contrast against potential bright backgrounds
+        int textColor = ContextCompat.getColor(this, R.color.text_primary);
+        ((TextView) findViewById(R.id.tv_lossless_badge)).setTextColor(textColor);
+        
+        if (mediaController != null) {
+            syncFavoriteState(color);
+            syncShuffleState(color);
+            syncRepeatState(color);
+        }
+    }
+    
     private void syncFavoriteState() {
+        syncFavoriteState(ContextCompat.getColor(this, R.color.accent_blue));
+    }
+
+    private void syncFavoriteState(int activeColor) {
         if (mediaController == null || btnFav == null) return;
         MediaItem item = mediaController.getCurrentMediaItem();
         if (item != null && !item.mediaId.isEmpty()) {
             boolean isFav = SongMetadataManager.isFavorite(this, item.mediaId);
             btnFav.setIconResource(isFav ? R.drawable.ic_favorite_24 : R.drawable.ic_favorite_border_24);
-            btnFav.setIconTintResource(isFav ? R.color.accent_blue : R.color.text_secondary);
+            btnFav.setIconTintResource(isFav ? activeColor : R.color.text_secondary);
         }
     }
 
@@ -282,14 +347,22 @@ public class NowPlayingActivity extends AppCompatActivity {
     }
 
     private void syncShuffleState() {
+        syncShuffleState(ContextCompat.getColor(this, R.color.accent_blue));
+    }
+
+    private void syncShuffleState(int activeColor) {
         if (mediaController == null || btnShuffle == null) return;
-        btnShuffle.setIconTintResource(mediaController.getShuffleModeEnabled() ? R.color.accent_blue : R.color.text_secondary);
+        btnShuffle.setIconTintResource(mediaController.getShuffleModeEnabled() ? activeColor : R.color.text_secondary);
     }
 
     private void syncRepeatState() {
+        syncRepeatState(ContextCompat.getColor(this, R.color.accent_blue));
+    }
+
+    private void syncRepeatState(int activeColor) {
         if (mediaController == null || btnRepeat == null) return;
         int mode = mediaController.getRepeatMode();
-        btnRepeat.setIconTintResource(mode != Player.REPEAT_MODE_OFF ? R.color.accent_blue : R.color.text_secondary);
+        btnRepeat.setIconTintResource(mode != Player.REPEAT_MODE_OFF ? activeColor : R.color.text_secondary);
     }
 
     private void syncProgress() {

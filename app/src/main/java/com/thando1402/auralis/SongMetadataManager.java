@@ -77,6 +77,7 @@ public class SongMetadataManager {
                 JSONObject edit = allEdits.getJSONObject(key);
                 song.setTitle(edit.optString("title", song.getTitle()));
                 song.setArtist(edit.optString("artist", song.getArtist()));
+                song.setLyrics(edit.optString("lyrics", ""));
                 String coverPath = edit.optString("coverPath", "");
                 if (!coverPath.isEmpty()) {
                     File coverFile = new File(coverPath);
@@ -90,7 +91,7 @@ public class SongMetadataManager {
         }
     }
 
-    public static void saveSongEdit(Context context, Song song, String newTitle, String newArtist, Uri pickedImageUri) {
+    public static void saveSongEdit(Context context, Song song, String newTitle, String newArtist, Uri pickedImageUri, String lyrics) {
         try {
             JSONObject allEdits = loadJson(context);
             String key = song.getUri().toString();
@@ -99,6 +100,10 @@ public class SongMetadataManager {
 
             edit.put("title", newTitle);
             edit.put("artist", newArtist);
+            if (lyrics != null) {
+                edit.put("lyrics", lyrics);
+                song.setLyrics(lyrics);
+            }
 
             if (pickedImageUri != null) {
                 File savedCover = compressAndSaveCover(context, pickedImageUri, key.hashCode());
