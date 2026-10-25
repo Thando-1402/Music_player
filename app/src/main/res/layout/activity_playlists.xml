@@ -2,49 +2,43 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/playlists_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_window"
     android:fitsSystemWindows="true">
 
-    <!-- Top App Bar -->
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar_playlists"
         android:layout_width="0dp"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/bg_window"
-        app:title="Playlists"
-        app:subtitle="6 collections • Offline library"
+        app:title="Playlists &amp; Curator"
         app:titleTextColor="@color/text_primary"
-        app:subtitleTextColor="@color/text_secondary"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toStartOf="@id/btn_new_playlist" />
 
-    <!-- "+ New" Primary Button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_new_playlist"
-        style="@style/Widget.Material3.Button"
+        style="@style/Widget.Material3.Button.TonalButton"
         android:layout_width="wrap_content"
-        android:layout_height="40dp"
+        android:layout_height="36dp"
         android:layout_marginEnd="16dp"
-        android:text="+ New"
-        android:textSize="13sp"
-        android:textColor="@color/on_accent_blue"
-        app:backgroundTint="@color/accent_blue"
-        app:cornerRadius="20dp"
+        android:text="+ New Playlist"
+        android:textSize="11sp"
+        android:textColor="@color/accent_blue"
+        app:backgroundTint="@color/surface_card"
+        app:cornerRadius="18dp"
         app:layout_constraintTop_toTopOf="@id/toolbar_playlists"
         app:layout_constraintBottom_toBottomOf="@id/toolbar_playlists"
         app:layout_constraintEnd_toEndOf="parent" />
 
     <androidx.core.widget.NestedScrollView
-        android:id="@+id/scroll_container"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:clipToPadding="false"
-        android:paddingBottom="72dp"
+        android:paddingBottom="16dp"
         app:layout_constraintTop_toBottomOf="@id/toolbar_playlists"
         app:layout_constraintBottom_toTopOf="@id/mini_player_playlists"
         app:layout_constraintStart_toStartOf="parent"
@@ -54,154 +48,186 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="16dp"
+            android:paddingTop="4dp">
 
-            <!-- Smart Curator Feature Card -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SMART CURATOR &amp; AUTO-MIXES"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-bold"
+                android:letterSpacing="0.08"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Favourites Smart Card -->
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/card_smart_curator"
+                android:id="@+id/card_playlist_favorites"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@color/surface_card"
+                android:background="@drawable/bg_rounded_card_12dp"
                 android:padding="14dp"
-                android:elevation="0dp">
+                android:layout_marginBottom="8dp"
+                android:clickable="true"
+                android:focusable="true">
 
                 <ImageView
-                    android:id="@+id/icon_sparkle"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:src="@drawable/ic_auto_awesome_24"
-                    app:tint="@color/accent_blue"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintStart_toStartOf="parent" />
-
-                <TextView
-                    android:id="@+id/title_smart_curator"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:layout_marginEnd="8dp"
-                    android:text="Smart Curator"
-                    android:textColor="@color/text_primary"
-                    android:textSize="15sp"
-                    android:fontFamily="sans-serif-bold"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintStart_toEndOf="@id/icon_sparkle"
-                    app:layout_constraintEnd_toStartOf="@id/btn_smart_curator_action" />
-
-                <TextView
-                    android:id="@+id/desc_smart_curator"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Auto-generate mixes from ID3 tags &amp; BPM"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp"
-                    app:layout_constraintTop_toBottomOf="@id/title_smart_curator"
-                    app:layout_constraintStart_toStartOf="@id/title_smart_curator"
-                    app:layout_constraintEnd_toStartOf="@id/btn_smart_curator_action" />
-
-                <androidx.appcompat.widget.AppCompatImageButton
-                    android:id="@+id/btn_smart_curator_action"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_bolt_24"
+                    android:id="@+id/icon_fav_mix"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:src="@drawable/ic_favorite_24"
                     app:tint="@color/accent_blue"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent" />
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginStart="14dp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/icon_fav_mix"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Favourites Master"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:fontFamily="sans-serif-bold" />
+
+                    <TextView
+                        android:id="@+id/tv_fav_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="0 starred tracks • Tap to play"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <!-- Filter Chips Horizontal Scroll -->
-            <HorizontalScrollView
+            <!-- AI Smart Mix Card -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/card_playlist_ai_mix"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:scrollbars="none">
-
-                <com.google.android.material.chip.ChipGroup
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    app:singleSelection="true">
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_all_playlists"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:checked="true"
-                        android:text="All Playlists"
-                        app:chipBackgroundColor="@color/accent_blue"
-                        android:textColor="@color/on_accent_blue" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_favorites"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Favorites"
-                        app:chipBackgroundColor="@color/surface_card"
-                        android:textColor="@color/text_secondary" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_recently_added"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Recently Added"
-                        app:chipBackgroundColor="@color/surface_card"
-                        android:textColor="@color/text_secondary" />
-                </com.google.android.material.chip.ChipGroup>
-            </HorizontalScrollView>
-
-            <!-- Playlists RecyclerView -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recycler_playlists"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:nestedScrollingEnabled="false"
-                tools:listitem="@layout/item_playlist" />
-
-            <!-- Offline Cache Indicator Banner -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="16dp"
-                android:background="@color/surface_card"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:padding="16dp">
+                android:background="@drawable/bg_rounded_card_12dp"
+                android:padding="14dp"
+                android:layout_marginBottom="8dp"
+                android:clickable="true"
+                android:focusable="true">
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_check_circle_24"
-                    app:tint="@color/accent_blue" />
+                    android:id="@+id/icon_ai_mix"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:src="@drawable/ic_auto_awesome_24"
+                    app:tint="@color/accent_blue"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="All Playlists Synced Offline"
-                    android:textColor="@color/text_primary"
-                    android:textSize="14sp"
-                    android:fontFamily="sans-serif-medium" />
+                    android:orientation="vertical"
+                    android:layout_marginStart="14dp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/icon_ai_mix"
+                    app:layout_constraintEnd_toEndOf="parent">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="✨ AI Smart Discovery Queue"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:fontFamily="sans-serif-bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Blends your Favourites with 25 deep-cut local tracks"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- Late Night / Long-Form Sessions Card -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/card_playlist_chill"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_rounded_card_12dp"
+                android:padding="14dp"
+                android:layout_marginBottom="18dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:id="@+id/icon_chill_mix"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:src="@drawable/ic_headphones_24"
+                    app:tint="@color/accent_blue"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Stored directly in internal audio storage cache"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
-            </LinearLayout>
+                    android:orientation="vertical"
+                    android:layout_marginStart="14dp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/icon_chill_mix"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Late-Night Extended Sessions"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:fontFamily="sans-serif-bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Extended &amp; acoustic local tracks (&gt; 3:30 duration)"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="YOUR CUSTOM PLAYLISTS (TAP TO PLAY • LONG-PRESS TO EXPORT .M3U)"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-bold"
+                android:letterSpacing="0.06"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:id="@+id/container_custom_playlists"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- Mini-Player Container -->
     <include
         android:id="@+id/mini_player_playlists"
         layout="@layout/layout_mini_player"
@@ -211,16 +237,15 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Bottom Tab Bar -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav_playlists"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="56dp"
         android:background="@color/bg_window"
         app:itemIconTint="@color/selector_nav_tint"
         app:itemTextColor="@color/selector_nav_tint"
-        app:menu="@menu/bottom_nav_menu"
         app:labelVisibilityMode="labeled"
+        app:menu="@menu/bottom_nav_menu"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

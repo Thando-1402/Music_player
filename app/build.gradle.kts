@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.perf)
+    implementation("com.google.firebase:firebase-analytics:22.1.2")
     implementation(libs.material)
     
     implementation("com.google.firebase:firebase-ai:18.1.0")

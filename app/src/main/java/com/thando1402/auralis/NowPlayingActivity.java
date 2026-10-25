@@ -13,6 +13,7 @@ import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -22,12 +23,11 @@ import androidx.media3.common.Player;
 import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.Locale;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
 
 public class NowPlayingActivity extends AppCompatActivity {
 
@@ -36,7 +36,9 @@ public class NowPlayingActivity extends AppCompatActivity {
 
     private TextView tvTitle, tvArtist, tvTimeCurrent, tvTimeRemaining;
     private TextView tvDeviceName, tvDeviceCodec;
-    private ImageView ivArt, btnPlayPause, btnFav, btnShuffle, btnRepeat;
+    private ImageView ivArt;
+    private FloatingActionButton btnPlayPause;
+    private MaterialButton btnFav, btnShuffle, btnRepeat;
     private SeekBar seekBar;
     private boolean isTracking = false;
 
@@ -45,7 +47,7 @@ public class NowPlayingActivity extends AppCompatActivity {
         @Override
         public void run() {
             syncProgress();
-            progressHandler.postDelayed(this, 500); // 500ms for Nokia 1.4 battery saving
+            progressHandler.postDelayed(this, 500);
         }
     };
 
@@ -80,7 +82,7 @@ public class NowPlayingActivity extends AppCompatActivity {
         setContentView(R.layout.activity_now_playing);
 
         tvTitle = findViewById(R.id.tv_track_title);
-        tvTitle.setSelected(true); // For marquee text
+        tvTitle.setSelected(true);
         tvArtist = findViewById(R.id.tv_track_artist_album);
         tvTimeCurrent = findViewById(R.id.tv_time_current);
         tvTimeRemaining = findViewById(R.id.tv_time_remaining);
@@ -93,17 +95,17 @@ public class NowPlayingActivity extends AppCompatActivity {
             finish();
             overridePendingTransition(0, R.anim.slide_down_out);
         });
-        findViewById(R.id.btn_queue).setOnClickListener(v -> {
-            // Queue logic placeholder
-        });
+        findViewById(R.id.btn_queue).setOnClickListener(v ->
+                startActivity(new Intent(NowPlayingActivity.this, PlaylistsActivity.class)));
 
         btnPlayPause = findViewById(R.id.btn_play_pause_fab);
         btnPlayPause.setOnClickListener(v -> {
             if (mediaController != null) {
                 if (mediaController.isPlaying()) mediaController.pause();
                 else mediaController.play();
-                btnPlayPause.animate().scaleX(0.8f).scaleY(0.8f).setDuration(100)
-                        .withEndAction(() -> btnPlayPause.animate().scaleX(1f).scaleY(1f).setInterpolator(new OvershootInterpolator()).start()).start();
+                btnPlayPause.animate().scaleX(0.85f).scaleY(0.85f).setDuration(90)
+                        .withEndAction(() -> btnPlayPause.animate().scaleX(1f).scaleY(1f)
+                                .setInterpolator(new OvershootInterpolator()).start()).start();
             }
         });
 
@@ -125,15 +127,34 @@ public class NowPlayingActivity extends AppCompatActivity {
         btnRepeat.setOnClickListener(v -> {
             if (mediaController != null) {
                 int mode = mediaController.getRepeatMode();
-                mediaController.setRepeatMode(mode == Player.REPEAT_MODE_OFF ? Player.REPEAT_MODE_ALL : (mode == Player.REPEAT_MODE_ALL ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF));
+                mediaController.setRepeatMode(mode == Player.REPEAT_MODE_OFF
+                        ? Player.REPEAT_MODE_ALL
+                        : (mode == Player.REPEAT_MODE_ALL ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF));
             }
         });
 
-        findViewById(R.id.btn_lyrics_sheet).setOnClickListener(v -> {
-            startActivity(new Intent(NowPlayingActivity.this, PlaylistsActivity.class));
-        });
+        findViewById(R.id.btn_lyrics_sheet).setOnClickListener(v ->
+                startActivity(new Intent(NowPlayingActivity.this, PlaylistsActivity.class)));
 
         btnFav = findViewById(R.id.btn_toggle_favorite);
+        if (btnFav != null) {
+            btnFav.setOnClickListener(v -> {
+                if (mediaController != null) {
+                    MediaItem item = mediaController.getCurrentMediaItem();
+                    if (item != null && !item.mediaId.isEmpty()) {
+                        boolean newFav = !SongMetadataManager.isFavorite(this, item.mediaId);
+                        SongMetadataManager.setFavorite(this, item.mediaId, newFav);
+                        syncFavoriteState();
+                        Toast.makeText(this, newFav ? "Added to Favourites ♥" : "Removed from Favourites", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
+
+        findViewById(R.id.card_audio_route_output).setOnClickListener(v -> {
+            detectActiveDacOutput();
+            Toast.makeText(this, "Hardware audio route refreshed", Toast.LENGTH_SHORT).show();
+        });
 
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -172,7 +193,7 @@ public class NowPlayingActivity extends AppCompatActivity {
         String codecLabel = "24-BIT PCM";
         try {
             AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-            if (am != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (am != null) {
                 for (AudioDeviceInfo d : am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
                     int type = d.getType();
                     String prod = d.getProductName() != null ? d.getProductName().toString() : "";
@@ -232,7 +253,7 @@ public class NowPlayingActivity extends AppCompatActivity {
     private void syncMetadata() {
         if (mediaController == null) return;
         MediaItem item = mediaController.getCurrentMediaItem();
-        if (item != null && item.mediaMetadata != null) {
+        if (item != null) {
             tvTitle.setText(item.mediaMetadata.title != null ? item.mediaMetadata.title : "Unknown Track");
             tvArtist.setText(item.mediaMetadata.artist != null ? item.mediaMetadata.artist : "Unknown Artist");
             if (item.mediaMetadata.artworkUri != null) {
@@ -242,22 +263,33 @@ public class NowPlayingActivity extends AppCompatActivity {
             }
         }
         syncProgress();
+        syncFavoriteState();
+    }
+
+    private void syncFavoriteState() {
+        if (mediaController == null || btnFav == null) return;
+        MediaItem item = mediaController.getCurrentMediaItem();
+        if (item != null && !item.mediaId.isEmpty()) {
+            boolean isFav = SongMetadataManager.isFavorite(this, item.mediaId);
+            btnFav.setIconResource(isFav ? R.drawable.ic_favorite_24 : R.drawable.ic_favorite_border_24);
+            btnFav.setIconTintResource(isFav ? R.color.accent_blue : R.color.text_secondary);
+        }
     }
 
     private void syncPlayPauseState() {
-        if (mediaController == null) return;
-        ((FloatingActionButton) btnPlayPause).setImageResource(mediaController.isPlaying() ? R.drawable.ic_pause_24 : R.drawable.ic_play_arrow_24);
+        if (mediaController == null || btnPlayPause == null) return;
+        btnPlayPause.setImageResource(mediaController.isPlaying() ? R.drawable.ic_pause_24 : R.drawable.ic_play_arrow_24);
     }
 
     private void syncShuffleState() {
         if (mediaController == null || btnShuffle == null) return;
-        btnShuffle.setColorFilter(ContextCompat.getColor(this, mediaController.getShuffleModeEnabled() ? R.color.accent_blue : R.color.text_secondary));
+        btnShuffle.setIconTintResource(mediaController.getShuffleModeEnabled() ? R.color.accent_blue : R.color.text_secondary);
     }
 
     private void syncRepeatState() {
         if (mediaController == null || btnRepeat == null) return;
         int mode = mediaController.getRepeatMode();
-        btnRepeat.setColorFilter(ContextCompat.getColor(this, mode != Player.REPEAT_MODE_OFF ? R.color.accent_blue : R.color.text_secondary));
+        btnRepeat.setIconTintResource(mode != Player.REPEAT_MODE_OFF ? R.color.accent_blue : R.color.text_secondary);
     }
 
     private void syncProgress() {

@@ -178,12 +178,24 @@ public class SongMetadataManager {
         }
     }
 
+    private static JSONObject cachedEdits = null;
+    private static long lastModifiedTime = 0;
+
     private static JSONObject loadJson(Context context) {
-        return readFileToJson(getStableMetadataFile(context));
+        File f = getStableMetadataFile(context);
+        if (cachedEdits != null && f.lastModified() == lastModifiedTime) {
+            return cachedEdits;
+        }
+        cachedEdits = readFileToJson(f);
+        lastModifiedTime = f.lastModified();
+        return cachedEdits;
     }
 
     private static void saveJson(Context context, JSONObject json) {
-        writeJsonToFile(getStableMetadataFile(context), json);
+        File f = getStableMetadataFile(context);
+        writeJsonToFile(f, json);
+        cachedEdits = json;
+        lastModifiedTime = f.lastModified();
     }
 
     private static JSONObject readFileToJson(File file) {
