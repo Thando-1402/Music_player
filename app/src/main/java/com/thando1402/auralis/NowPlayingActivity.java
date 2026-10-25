@@ -20,6 +20,7 @@ import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -41,7 +42,8 @@ public class NowPlayingActivity extends AppCompatActivity {
     private ListenableFuture<MediaController> controllerFuture;
 
     private TextView tvTitle, tvArtist, tvTimeCurrent, tvTimeRemaining;
-    private TextView tvDeviceName, tvDeviceCodec;
+    private TextView tvDeviceName, tvDeviceCodec, tvScrolledLyrics;
+    private View lyricsScrollContainer;
     private ImageView ivArt;
     private FloatingActionButton btnPlayPause;
     private MaterialButton btnFav, btnShuffle, btnRepeat;
@@ -95,6 +97,8 @@ public class NowPlayingActivity extends AppCompatActivity {
         tvTimeRemaining = findViewById(R.id.tv_time_remaining);
         tvDeviceName = findViewById(R.id.tv_connected_device_name);
         tvDeviceCodec = findViewById(R.id.tv_connected_device_codec);
+        tvScrolledLyrics = findViewById(R.id.tv_scrolled_lyrics);
+        lyricsScrollContainer = findViewById(R.id.lyrics_scroll_container);
         ivArt = findViewById(R.id.iv_hero_album_art);
         seekBar = findViewById(R.id.slider_playback_progress);
 
@@ -140,8 +144,14 @@ public class NowPlayingActivity extends AppCompatActivity {
             }
         });
 
-        findViewById(R.id.btn_lyrics_sheet).setOnClickListener(v ->
-                startActivity(new Intent(NowPlayingActivity.this, PlaylistsActivity.class)));
+        findViewById(R.id.btn_lyrics_sheet).setOnClickListener(v -> {
+            if (lyricsScrollContainer != null) {
+                boolean isVisible = lyricsScrollContainer.getVisibility() == View.VISIBLE;
+                lyricsScrollContainer.setVisibility(isVisible ? View.GONE : View.VISIBLE);
+                ivArt.setVisibility(isVisible ? View.VISIBLE : View.GONE);
+                // Also toggle the scrims if you want, but they're mostly behind lyrics anyway
+            }
+        });
 
         btnFav = findViewById(R.id.btn_toggle_favorite);
         if (btnFav != null) {
@@ -270,6 +280,24 @@ public class NowPlayingActivity extends AppCompatActivity {
         if (item != null) {
             tvTitle.setText(item.mediaMetadata.title != null ? item.mediaMetadata.title : "Unknown Track");
             tvArtist.setText(item.mediaMetadata.artist != null ? item.mediaMetadata.artist : "Unknown Artist");
+            
+            // Try to load lyrics
+            if (item.mediaId != null) {
+                 Song temp = new Song("", "", Uri.parse(item.mediaId), 0);
+                 SongMetadataManager.applySavedEdits(this, temp);
+                 TextView tvLyrics = findViewById(R.id.tv_scrolled_lyrics);
+                 if (tvLyrics != null) {
+                     String lyrics = temp.getLyrics();
+                     if (lyrics != null && !lyrics.trim().isEmpty()) {
+                         tvLyrics.setText(lyrics);
+                         tvLyrics.setVisibility(View.VISIBLE);
+                     } else {
+                         tvLyrics.setText("No synchronized lyrics found.\nTap 'LYRICS / EDIT' below to paste or load an .lrc file.");
+                         tvLyrics.setVisibility(View.VISIBLE);
+                     }
+                 }
+            }
+            
             if (item.mediaMetadata.artworkUri != null) {
                 try {
                     ivArt.setImageURI(item.mediaMetadata.artworkUri);

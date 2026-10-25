@@ -165,15 +165,25 @@ public class SongMetadataManager {
             Bitmap original = BitmapFactory.decodeStream(in);
             if (original == null) return null;
 
-            Bitmap scaled = Bitmap.createScaledBitmap(original, 300, 300, true);
-            if (scaled != original) original.recycle();
+            int width = original.getWidth();
+            int height = original.getHeight();
+            int cropSize = Math.min(width, height);
+            int xOffset = (width - cropSize) / 2;
+            int yOffset = (height - cropSize) / 2;
+
+            Bitmap squareCrop = Bitmap.createBitmap(original, xOffset, yOffset, cropSize, cropSize);
+            if (squareCrop != original) original.recycle();
+
+            int targetDim = Math.min(720, cropSize);
+            Bitmap scaled = Bitmap.createScaledBitmap(squareCrop, targetDim, targetDim, true);
+            if (scaled != squareCrop) squareCrop.recycle();
 
             File coversDir = new File(getStorageDirectory(context), "covers");
             if (!coversDir.exists()) coversDir.mkdirs();
 
-            File outFile = new File(coversDir, "cover_" + Math.abs(songHash) + ".jpg");
+            File outFile = new File(coversDir, "cover_" + Math.abs(songHash) + "_" + System.currentTimeMillis() + ".jpg");
             try (FileOutputStream out = new FileOutputStream(outFile)) {
-                scaled.compress(Bitmap.CompressFormat.JPEG, 80, out);
+                scaled.compress(Bitmap.CompressFormat.JPEG, 90, out);
             }
             scaled.recycle();
             return outFile;
