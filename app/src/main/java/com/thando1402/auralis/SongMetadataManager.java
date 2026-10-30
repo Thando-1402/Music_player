@@ -469,9 +469,31 @@ public class SongMetadataManager {
                 edit.put("favorite", favorite);
                 allEdits.put(songUriKey, edit);
                 saveJsonLocked(context, allEdits);
+                NavigationHelper.markLibraryDirty();
             } catch (Exception ignored) {
             }
         }
+    }
+
+    @NonNull
+    public static java.util.Set<String> getFavoriteUris(Context context) {
+        java.util.Set<String> favs = new java.util.HashSet<>();
+        if (context == null) return favs;
+        synchronized (CACHE_LOCK) {
+            try {
+                JSONObject allEdits = loadJsonLocked(context);
+                java.util.Iterator<String> keys = allEdits.keys();
+                while (keys.hasNext()) {
+                    String k = keys.next();
+                    JSONObject edit = allEdits.optJSONObject(k);
+                    if (edit != null && edit.optBoolean("favorite", false)) {
+                        favs.add(k);
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return favs;
     }
 
     public static void removeCustomCover(Context context, String songUriKey) {

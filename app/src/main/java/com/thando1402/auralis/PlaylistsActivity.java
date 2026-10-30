@@ -67,6 +67,8 @@ public class PlaylistsActivity extends AppCompatActivity {
     private ListenableFuture<MediaController> controllerFuture;
     private ExecutorService scanExecutor;
     private Handler mainHandler;
+    private boolean initialScanTriggered = false;
+    private long lastAppliedLibraryVersion = -1L;
 
     private final Player.Listener playerListener = new Player.Listener() {
         @Override
@@ -116,6 +118,7 @@ public class PlaylistsActivity extends AppCompatActivity {
         miniArt = findViewById(R.id.mini_track_art);
         miniPlayerContainer = findViewById(R.id.mini_player_playlists);
 
+        initialScanTriggered = true;
         loadLocalTracksAsync();
         renderCustomPlaylists();
 
@@ -218,8 +221,10 @@ public class PlaylistsActivity extends AppCompatActivity {
             }
 
             final int finalFavCount = favCounter;
+            final long scannedVersion = NavigationHelper.getLibraryMutationVersion();
             mainHandler.post(() -> {
                 if (isFinishing() || isDestroyed()) return;
+                lastAppliedLibraryVersion = scannedVersion;
                 allSongs.clear();
                 allSongs.addAll(loaded);
                 if (tvFavCount != null) {
@@ -435,6 +440,16 @@ public class PlaylistsActivity extends AppCompatActivity {
             } catch (ExecutionException | InterruptedException | CancellationException ignored) {
             }
         }, ContextCompat.getMainExecutor(this));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (initialScanTriggered) {
+            initialScanTriggered = false;
+        } else if (allSongs.isEmpty() || lastAppliedLibraryVersion != NavigationHelper.getLibraryMutationVersion()) {
+            loadLocalTracksAsync();
+        }
     }
 
     @Override

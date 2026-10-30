@@ -63,6 +63,7 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
     private SearchView searchViewLibrary;
     private boolean searchIsVisible = false;
     private boolean initialScanTriggered = false;
+    private long lastAppliedLibraryVersion = -1L;
 
     private TextView miniTitle, miniSubtitle;
     private AppCompatImageButton btnPlayPause, btnNext;
@@ -173,8 +174,12 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
         }
         Chip chipAlbums = findViewById(R.id.chip_albums);
         if (chipAlbums != null) {
-            chipAlbums.setOnClickListener(v ->
-                    UiAnimationHelper.startInstant(this, new Intent(MainActivity.this, PlaylistsActivity.class)));
+            chipAlbums.setOnClickListener(v -> {
+                Intent intent = new Intent(MainActivity.this, PlaylistsActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                NavigationHelper.applySlideTransition(MainActivity.this, true);
+            });
         }
         Chip chipArtists = findViewById(R.id.chip_artists);
         if (chipArtists != null) {
@@ -186,8 +191,12 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
         }
         Chip chipFolders = findViewById(R.id.chip_folders);
         if (chipFolders != null) {
-            chipFolders.setOnClickListener(v ->
-                    UiAnimationHelper.startInstant(this, new Intent(MainActivity.this, FoldersActivity.class)));
+            chipFolders.setOnClickListener(v -> {
+                Intent intent = new Intent(MainActivity.this, FoldersActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                NavigationHelper.applySlideTransition(MainActivity.this, true);
+            });
         }
 
         View btnShuffleAll = findViewById(R.id.btn_shuffle_all_library);
@@ -418,8 +427,10 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
             } catch (Exception ignored) {
             }
 
+            final long scannedVersion = NavigationHelper.getLibraryMutationVersion();
             mainHandler.post(() -> {
                 if (isFinishing() || isDestroyed()) return;
+                lastAppliedLibraryVersion = scannedVersion;
                 songList.clear();
                 songList.addAll(newSongs);
                 displayedList.clear();
@@ -481,19 +492,24 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
         editIntent.putExtra("EXTRA_SONG_TITLE", clicked.getTitle());
         editIntent.putExtra("EXTRA_SONG_ARTIST", clicked.getArtist());
         startActivity(editIntent);
+        NavigationHelper.applySlideTransition(this, true);
     }
 
     @Override
     public void onSongAiCleanClick(int position) {
         if (position < 0 || position >= displayedList.size()) return;
         Song target = displayedList.get(position);
+        final android.content.Context appCtx = getApplicationContext();
         Toast.makeText(this, "✨ Dual-AI cleaning tags for \"" + target.getTitle() + "\"...", Toast.LENGTH_SHORT).show();
         OpenRouterAiHelper.autoCleanSongMetadata(this, target.getTitle(), target.getArtist(), (cleanTitle, cleanArtist, usedCloudAi) -> {
             if (isFinishing() || isDestroyed()) return;
             target.setTitle(cleanTitle);
             target.setArtist(cleanArtist);
-            SongMetadataManager.saveSongEdit(this, target, cleanTitle, cleanArtist, target.getCustomCoverUri(), target.getLyrics());
             if (adapter != null) adapter.notifyItemChanged(position);
+            scanExecutor.execute(() -> {
+                SongMetadataManager.saveSongEdit(appCtx, target, cleanTitle, cleanArtist, target.getCustomCoverUri(), target.getLyrics());
+                NavigationHelper.markLibraryDirty();
+            });
             Toast.makeText(this, (usedCloudAi ? "✨ Cloud AI: " : "✨ Smart Parser: ") + cleanTitle + " — " + cleanArtist, Toast.LENGTH_SHORT).show();
         });
     }
@@ -561,7 +577,7 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
         super.onResume();
         if (initialScanTriggered) {
             initialScanTriggered = false;
-        } else {
+        } else if (songList.isEmpty() || lastAppliedLibraryVersion != NavigationHelper.getLibraryMutationVersion()) {
             checkPermissionAndScan();
         }
     }

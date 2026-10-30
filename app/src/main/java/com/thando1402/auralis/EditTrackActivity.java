@@ -1,6 +1,7 @@
 package com.thando1402.auralis;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
@@ -25,6 +26,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -39,6 +41,7 @@ public class EditTrackActivity extends AppCompatActivity {
     private ShapeableImageView coverPreview;
 
     private Uri pendingCoverUri = null;
+    private boolean saveInProgress = false;
     private ExecutorService ioExecutor;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -52,18 +55,32 @@ public class EditTrackActivity extends AppCompatActivity {
 
     private final ActivityResultLauncher<String> pickLrcLauncher = registerForActivityResult(
             new ActivityResultContracts.GetContent(), uri -> {
-                if (uri != null) {
-                    try (InputStream is = getContentResolver().openInputStream(uri);
-                         BufferedReader br = is != null ? new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8)) : null) {
-                        if (br == null) return;
-                        StringBuilder sb = new StringBuilder();
-                        String line;
-                        while ((line = br.readLine()) != null) sb.append(line).append("\n");
-                        if (snippetLrc != null) snippetLrc.setText(sb.toString().trim());
-                        Toast.makeText(this, "Lyrics loaded from .lrc file", Toast.LENGTH_SHORT).show();
-                    } catch (Exception e) {
-                        Toast.makeText(this, "Failed to read .lrc file", Toast.LENGTH_SHORT).show();
-                    }
+                if (uri != null && ioExecutor != null) {
+                    final Context appCtx = getApplicationContext();
+                    ioExecutor.execute(() -> {
+                        try (InputStream is = appCtx.getContentResolver().openInputStream(uri);
+                             BufferedReader br = is != null ? new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8)) : null) {
+                            if (br == null) return;
+                            StringBuilder sb = new StringBuilder();
+                            String line = br.readLine();
+                            while (line != null) {
+                                sb.append(line).append("\n");
+                                line = br.readLine();
+                            }
+                            final String loadedText = sb.toString().trim();
+                            mainHandler.post(() -> {
+                                if (isFinishing() || isDestroyed()) return;
+                                if (snippetLrc != null) snippetLrc.setText(loadedText);
+                                Toast.makeText(this, "Lyrics loaded from .lrc file", Toast.LENGTH_SHORT).show();
+                            });
+                        } catch (Exception e) {
+                            mainHandler.post(() -> {
+                                if (!isFinishing() && !isDestroyed()) {
+                                    Toast.makeText(this, "Failed to read .lrc file", Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
+                    });
                 }
             });
 
@@ -75,7 +92,10 @@ public class EditTrackActivity extends AppCompatActivity {
 
         MaterialToolbar toolbar = findViewById(R.id.toolbar_edit_track);
         if (toolbar != null) {
-            toolbar.setNavigationOnClickListener(v -> finish());
+            toolbar.setNavigationOnClickListener(v -> {
+                finish();
+                NavigationHelper.applySlideTransition(this, false);
+            });
         }
 
         if (getIntent() != null) {
@@ -94,43 +114,48 @@ public class EditTrackActivity extends AppCompatActivity {
         TextView textFileSpecs = findViewById(R.id.text_track_file_specs);
         coverPreview = findViewById(R.id.edit_track_artwork);
 
-        if (songUri != null) {
-            Song temp = new Song(
-                    songTitle != null ? songTitle : "",
-                    songArtist != null ? songArtist : "",
-                    songUri,
-                    0);
-            SongMetadataManager.applySavedEdits(this, temp, true);
-            if (editTitle != null) editTitle.setText(temp.getTitle());
-            if (editArtist != null) editArtist.setText(temp.getArtist());
-            if (editAlbum != null && !temp.getAlbum().isEmpty()) editAlbum.setText(temp.getAlbum());
-            if (editNum != null && !temp.getTrackNumber().isEmpty()) editNum.setText(temp.getTrackNumber());
-            if (editYearGenre != null && !temp.getYearGenre().isEmpty()) editYearGenre.setText(temp.getYearGenre());
+        if (editTitle != null && songTitle != null) editTitle.setText(songTitle);
+        if (editArtist != null && songArtist != null) editArtist.setText(songArtist);
 
-            if (temp.getCustomCoverUri() != null && coverPreview != null) {
-                coverPreview.setImageURI(temp.getCustomCoverUri());
-            } else if (coverPreview != null) {
-                final Uri targetUri = songUri;
-                ioExecutor.execute(() -> {
-                    Bitmap existingArt = ArtworkColorHelper.loadArtworkBitmap(getApplicationContext(), null, targetUri, 360);
-                    if (existingArt != null) {
-                        mainHandler.post(() -> {
-                            if (!isFinishing() && !isDestroyed() && pendingCoverUri == null) {
-                                coverPreview.setImageBitmap(existingArt);
-                            }
-                        });
+        if (songUri != null) {
+            final Context appCtx = getApplicationContext();
+            final Uri targetUri = songUri;
+            final String initTitle = Objects.requireNonNullElse(songTitle, "");
+            final String initArtist = Objects.requireNonNullElse(songArtist, "");
+
+            ioExecutor.execute(() -> {
+                Song temp = new Song(initTitle, initArtist, targetUri, 0);
+                SongMetadataManager.applySavedEdits(appCtx, temp, true);
+                File syncedDir = SongMetadataManager.getSyncedLyricsDir(appCtx);
+                File origDir = SongMetadataManager.getBackupLyricsDir(appCtx);
+                final String syncedName = syncedDir.getName();
+                final String origName = origDir.getName();
+                final Bitmap existingArt = temp.getCustomCoverUri() == null
+                        ? ArtworkColorHelper.loadArtworkBitmap(appCtx, null, targetUri, 360)
+                        : null;
+
+                mainHandler.post(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    if (editTitle != null) editTitle.setText(temp.getTitle());
+                    if (editArtist != null) editArtist.setText(temp.getArtist());
+                    if (editAlbum != null && !temp.getAlbum().isEmpty()) editAlbum.setText(temp.getAlbum());
+                    if (editNum != null && !temp.getTrackNumber().isEmpty()) editNum.setText(temp.getTrackNumber());
+                    if (editYearGenre != null && !temp.getYearGenre().isEmpty()) editYearGenre.setText(temp.getYearGenre());
+                    if (snippetLrc != null && temp.getLyrics() != null && !temp.getLyrics().isEmpty()) {
+                        snippetLrc.setText(temp.getLyrics());
+                    }
+                    if (textFileSpecs != null) {
+                        textFileSpecs.setText(getString(R.string.edit_track_storage_fmt, syncedName, origName));
+                    }
+                    if (coverPreview != null && pendingCoverUri == null) {
+                        if (temp.getCustomCoverUri() != null) {
+                            coverPreview.setImageURI(temp.getCustomCoverUri());
+                        } else if (existingArt != null) {
+                            coverPreview.setImageBitmap(existingArt);
+                        }
                     }
                 });
-            }
-
-            if (snippetLrc != null && temp.getLyrics() != null && !temp.getLyrics().isEmpty()) {
-                snippetLrc.setText(temp.getLyrics());
-            }
-            if (textFileSpecs != null) {
-                File syncedDir = SongMetadataManager.getSyncedLyricsDir(this);
-                File origDir = SongMetadataManager.getBackupLyricsDir(this);
-                textFileSpecs.setText(getString(R.string.edit_track_storage_fmt, syncedDir.getName(), origDir.getName()));
-            }
+            });
         }
 
         findViewById(R.id.btn_overlay_change_art).setOnClickListener(v -> pickCoverLauncher.launch("image/*"));
@@ -138,30 +163,52 @@ public class EditTrackActivity extends AppCompatActivity {
 
         findViewById(R.id.btn_extract_art).setOnClickListener(v -> {
             if (songUri == null) return;
-            try (MediaMetadataRetriever retriever = new MediaMetadataRetriever()) {
-                retriever.setDataSource(this, songUri);
-                byte[] art = retriever.getEmbeddedPicture();
-                if (art != null) {
-                    File cacheFile = new File(getCacheDir(), "embedded_art_" + System.currentTimeMillis() + ".jpg");
-                    try (FileOutputStream fos = new FileOutputStream(cacheFile)) {
-                        fos.write(art);
+            final Context appCtx = getApplicationContext();
+            final Uri targetUri = songUri;
+            ioExecutor.execute(() -> {
+                try (MediaMetadataRetriever retriever = new MediaMetadataRetriever()) {
+                    retriever.setDataSource(appCtx, targetUri);
+                    byte[] art = retriever.getEmbeddedPicture();
+                    if (art != null) {
+                        File cacheFile = new File(appCtx.getCacheDir(), "embedded_art_" + System.currentTimeMillis() + ".jpg");
+                        try (FileOutputStream fos = new FileOutputStream(cacheFile)) {
+                            fos.write(art);
+                        }
+                        final Uri extractedUri = Uri.fromFile(cacheFile);
+                        mainHandler.post(() -> {
+                            if (isFinishing() || isDestroyed()) return;
+                            pendingCoverUri = extractedUri;
+                            if (coverPreview != null) coverPreview.setImageURI(extractedUri);
+                            Toast.makeText(this, "Embedded cover extracted!", Toast.LENGTH_SHORT).show();
+                        });
+                    } else {
+                        mainHandler.post(() -> {
+                            if (!isFinishing() && !isDestroyed()) {
+                                Toast.makeText(this, "No embedded cover found in this audio file", Toast.LENGTH_SHORT).show();
+                            }
+                        });
                     }
-                    pendingCoverUri = Uri.fromFile(cacheFile);
-                    if (coverPreview != null) coverPreview.setImageURI(pendingCoverUri);
-                    Toast.makeText(this, "Embedded cover extracted!", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(this, "No embedded cover found in this audio file", Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    mainHandler.post(() -> {
+                        if (!isFinishing() && !isDestroyed()) {
+                            Toast.makeText(this, "Could not extract cover art", Toast.LENGTH_SHORT).show();
+                        }
+                    });
                 }
-            } catch (Exception e) {
-                Toast.makeText(this, "Could not extract cover art", Toast.LENGTH_SHORT).show();
-            }
+            });
         });
 
         findViewById(R.id.btn_delete_art).setOnClickListener(v -> {
             pendingCoverUri = null;
             if (coverPreview != null) coverPreview.setImageResource(R.drawable.ic_album_placeholder_large);
             if (songUri != null) {
-                SongMetadataManager.removeCustomCover(this, songUri.toString());
+                final Context appCtx = getApplicationContext();
+                final String uriKey = songUri.toString();
+                ioExecutor.execute(() -> {
+                    SongMetadataManager.removeCustomCover(appCtx, uriKey);
+                    ArtworkColorHelper.invalidateCacheForSong(uriKey);
+                    NavigationHelper.markLibraryDirty();
+                });
                 Toast.makeText(this, "Custom cover removed", Toast.LENGTH_SHORT).show();
             }
         });
@@ -197,15 +244,22 @@ public class EditTrackActivity extends AppCompatActivity {
                             runAiLyricsSyncInEditor();
                         } else if (which == 3) {
                             if (songUri == null) return;
-                            String t = editTitle != null ? editTitle.getText().toString().trim() : songTitle;
-                            String a = editArtist != null ? editArtist.getText().toString().trim() : songArtist;
-                            String restored = SongMetadataManager.restoreOriginalBackupLyrics(this, songUri.toString(), t, a);
-                            if (restored != null && !restored.isEmpty()) {
-                                if (snippetLrc != null) snippetLrc.setText(restored);
-                                Toast.makeText(this, "Original backup lyrics restored!", Toast.LENGTH_SHORT).show();
-                            } else {
-                                Toast.makeText(this, "No original backup found yet", Toast.LENGTH_SHORT).show();
-                            }
+                            final Context appCtx = getApplicationContext();
+                            final String uriKey = songUri.toString();
+                            final String t = editTitle != null ? editTitle.getText().toString().trim() : songTitle;
+                            final String a = editArtist != null ? editArtist.getText().toString().trim() : songArtist;
+                            ioExecutor.execute(() -> {
+                                final String restored = SongMetadataManager.restoreOriginalBackupLyrics(appCtx, uriKey, t, a);
+                                mainHandler.post(() -> {
+                                    if (isFinishing() || isDestroyed()) return;
+                                    if (restored != null && !restored.isEmpty()) {
+                                        if (snippetLrc != null) snippetLrc.setText(restored);
+                                        Toast.makeText(this, "Original backup lyrics restored!", Toast.LENGTH_SHORT).show();
+                                    } else {
+                                        Toast.makeText(this, "No original backup found yet", Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                            });
                         }
                     })
                     .show();
@@ -241,11 +295,13 @@ public class EditTrackActivity extends AppCompatActivity {
         String currentLyrics = getCleanSnippetLyrics();
 
         Toast.makeText(this, "✨ Syncing & formatting timestamps...", Toast.LENGTH_SHORT).show();
+        final Context appCtx = getApplicationContext();
+        final Uri targetUri = songUri;
         ioExecutor.execute(() -> {
             long durMs = 180_000L;
-            if (songUri != null) {
+            if (targetUri != null) {
                 try (MediaMetadataRetriever mmr = new MediaMetadataRetriever()) {
-                    mmr.setDataSource(this, songUri);
+                    mmr.setDataSource(appCtx, targetUri);
                     String durStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
                     if (durStr != null) durMs = Long.parseLong(durStr);
                 } catch (Exception ignored) {
@@ -273,23 +329,38 @@ public class EditTrackActivity extends AppCompatActivity {
     }
 
     private void saveAndFinish() {
-        if (songUri != null) {
-            String t = editTitle != null ? editTitle.getText().toString().trim() : songTitle;
-            String a = editArtist != null ? editArtist.getText().toString().trim() : songArtist;
-            String alb = editAlbum != null ? editAlbum.getText().toString().trim() : "";
-            String trkNum = editNum != null ? editNum.getText().toString().trim() : "";
-            String yrGenre = editYearGenre != null ? editYearGenre.getText().toString().trim() : "";
-            String l = getCleanSnippetLyrics();
-
-            if (t == null || t.isEmpty()) t = "Unknown Track";
-            if (a == null || a.isEmpty()) a = "Unknown Artist";
-
-            Song updated = new Song(t, a, songUri, 0);
-            ArtworkColorHelper.invalidateCacheForSong(songUri.toString());
-            SongMetadataManager.saveSongEditFull(this, updated, t, a, alb, trkNum, yrGenre, pendingCoverUri, l);
-            Toast.makeText(this, "Saved to Lyrics_Synced/ (Original Backup preserved)", Toast.LENGTH_SHORT).show();
+        if (saveInProgress) return;
+        if (songUri == null) {
+            finish();
+            return;
         }
-        finish();
+        saveInProgress = true;
+
+        String rawT = editTitle != null ? editTitle.getText().toString().trim() : songTitle;
+        String rawA = editArtist != null ? editArtist.getText().toString().trim() : songArtist;
+        final String alb = editAlbum != null ? editAlbum.getText().toString().trim() : "";
+        final String trkNum = editNum != null ? editNum.getText().toString().trim() : "";
+        final String yrGenre = editYearGenre != null ? editYearGenre.getText().toString().trim() : "";
+        final String l = getCleanSnippetLyrics();
+        final String finalTitle = (rawT == null || rawT.isEmpty()) ? "Unknown Track" : rawT;
+        final String finalArtist = (rawA == null || rawA.isEmpty()) ? "Unknown Artist" : rawA;
+        final Uri targetUri = songUri;
+        final Uri coverToSave = pendingCoverUri;
+        final Context appCtx = getApplicationContext();
+
+        ioExecutor.execute(() -> {
+            Song updated = new Song(finalTitle, finalArtist, targetUri, 0);
+            ArtworkColorHelper.invalidateCacheForSong(targetUri.toString());
+            SongMetadataManager.saveSongEditFull(appCtx, updated, finalTitle, finalArtist, alb, trkNum, yrGenre, coverToSave, l);
+            NavigationHelper.markLibraryDirty();
+            mainHandler.post(() -> {
+                Toast.makeText(appCtx, "Saved to Lyrics_Synced/ (Original Backup preserved)", Toast.LENGTH_SHORT).show();
+                if (!isFinishing() && !isDestroyed()) {
+                    finish();
+                    NavigationHelper.applySlideTransition(this, false);
+                }
+            });
+        });
     }
 
     @Override

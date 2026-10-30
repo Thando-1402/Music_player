@@ -27,6 +27,7 @@ public class AudioFilterManager {
     public static void setHideWhatsAppEnabled(Context context, boolean enabled) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         prefs.edit().putBoolean(KEY_HIDE_WHATSAPP, enabled).apply();
+        NavigationHelper.markLibraryDirty();
     }
 
     public static Set<String> getExcludedFolders(Context context) {
@@ -39,11 +40,13 @@ public class AudioFilterManager {
         set.add(folderPath);
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit().putStringSet(KEY_EXCLUDED_FOLDERS, set).apply();
+        NavigationHelper.markLibraryDirty();
     }
 
     public static void clearExcludedFolders(Context context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit().remove(KEY_EXCLUDED_FOLDERS).apply();
+        NavigationHelper.markLibraryDirty();
     }
 
     private static final String KEY_IGNORE_HIDDEN = "ignore_hidden";
@@ -58,6 +61,7 @@ public class AudioFilterManager {
     public static void setIgnoreHiddenEnabled(Context context, boolean enabled) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit().putBoolean(KEY_IGNORE_HIDDEN, enabled).apply();
+        NavigationHelper.markLibraryDirty();
     }
 
     public static boolean isRespectNomediaEnabled(Context context) {
@@ -67,6 +71,7 @@ public class AudioFilterManager {
     public static void setRespectNomediaEnabled(Context context, boolean enabled) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit().putBoolean(KEY_RESPECT_NOMEDIA, enabled).apply();
+        NavigationHelper.markLibraryDirty();
     }
 
     public static boolean isFilterShortClipsEnabled(Context context) {
@@ -76,6 +81,7 @@ public class AudioFilterManager {
     public static void setFilterShortClipsEnabled(Context context, boolean enabled) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit().putBoolean(KEY_FILTER_SHORT_CLIPS, enabled).apply();
+        NavigationHelper.markLibraryDirty();
     }
 
     public static boolean isExcludePodcastsEnabled(Context context) {
@@ -85,6 +91,7 @@ public class AudioFilterManager {
     public static void setExcludePodcastsEnabled(Context context, boolean enabled) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit().putBoolean(KEY_EXCLUDE_PODCASTS, enabled).apply();
+        NavigationHelper.markLibraryDirty();
     }
 
     public static boolean shouldExcludeTrack(Context context, String title, String fullPath, long durationMs) {

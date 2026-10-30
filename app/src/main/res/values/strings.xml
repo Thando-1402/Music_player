@@ -235,6 +235,11 @@
     <string name="setup_btn_guest">Continue as Guest (Anonymous Auth)</string>
     <string name="setup_btn_sign_out">Sign Out of Cloud Account</string>
     <string name="setup_status_offline">Mode: Local Offline Profile</string>
+    <string name="setup_status_creating_account">● Creating Cloud Account…</string>
+    <string name="setup_status_signing_in">● Signing In…</string>
+    <string name="setup_status_connecting_guest">● Connecting Guest Cloud Session…</string>
+    <string name="setup_status_guest_fmt">● Cloud Guest UID: %1$s</string>
+    <string name="setup_status_signed_in_fmt">● Signed in: %1$s</string>
 
     <!-- Menus -->
     <string name="menu_search_library">Search Library</string>

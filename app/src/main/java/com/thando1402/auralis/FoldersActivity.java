@@ -71,6 +71,7 @@ public class FoldersActivity extends AppCompatActivity {
     private String selectedFolderPath = null;
     private boolean sortByName = true;
     private boolean initialScanTriggered = false;
+    private long lastAppliedLibraryVersion = -1L;
     private long totalAudioBytes = 0;
 
     private final Player.Listener playerListener = new Player.Listener() {
@@ -372,8 +373,10 @@ public class FoldersActivity extends AppCompatActivity {
             }
 
             final long finalAudioBytes = audioBytesSum;
+            final long scannedVersion = NavigationHelper.getLibraryMutationVersion();
             handler.post(() -> {
                 if (isFinishing() || isDestroyed()) return;
+                lastAppliedLibraryVersion = scannedVersion;
                 totalAudioBytes = finalAudioBytes;
                 folderSongsMap.clear();
                 folderSongsMap.putAll(groupedSongs);
@@ -433,6 +436,7 @@ public class FoldersActivity extends AppCompatActivity {
                             .setMessage("Hide \"" + folder.getName() + "\" from Auralis Library & Folders?")
                             .setPositiveButton("Hide", (dialog, which) -> {
                                 AudioFilterManager.addExcludedFolder(FoldersActivity.this, folder.getPath());
+                                NavigationHelper.markLibraryDirty();
                                 scanStorageAndAudioFolders();
                             })
                             .setNegativeButton("Cancel", null)
@@ -480,6 +484,7 @@ public class FoldersActivity extends AppCompatActivity {
                 intent.putExtra("EXTRA_SONG_TITLE", s.getTitle());
                 intent.putExtra("EXTRA_SONG_ARTIST", s.getArtist());
                 startActivity(intent);
+                NavigationHelper.applySlideTransition(FoldersActivity.this, true);
             }
         });
         recyclerLooseFiles.setAdapter(adapter);
@@ -490,7 +495,7 @@ public class FoldersActivity extends AppCompatActivity {
         super.onResume();
         if (initialScanTriggered) {
             initialScanTriggered = false;
-        } else {
+        } else if (allFolders.isEmpty() || lastAppliedLibraryVersion != NavigationHelper.getLibraryMutationVersion()) {
             scanStorageAndAudioFolders();
         }
     }

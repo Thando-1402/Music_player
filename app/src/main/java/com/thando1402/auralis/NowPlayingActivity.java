@@ -296,11 +296,18 @@ public class NowPlayingActivity extends AppCompatActivity {
                 if (mediaController != null) {
                     MediaItem item = mediaController.getCurrentMediaItem();
                     if (item != null && !item.mediaId.isEmpty()) {
-                        boolean newFav = !SongMetadataManager.isFavorite(this, item.mediaId);
-                        SongMetadataManager.setFavorite(this, item.mediaId, newFav);
-                        UiAnimationHelper.pulseBounce(btnFav);
-                        syncFavoriteState(currentAccentColor);
-                        Toast.makeText(this, newFav ? "Added to Favourites ♥" : "Removed from Favourites", Toast.LENGTH_SHORT).show();
+                        final String mediaId = item.mediaId;
+                        final android.content.Context appCtx = getApplicationContext();
+                        ioExecutor.execute(() -> {
+                            final boolean newFav = !SongMetadataManager.isFavorite(appCtx, mediaId);
+                            SongMetadataManager.setFavorite(appCtx, mediaId, newFav);
+                            progressHandler.post(() -> {
+                                if (isFinishing() || isDestroyed()) return;
+                                UiAnimationHelper.pulseBounce(btnFav);
+                                syncFavoriteState(currentAccentColor);
+                                Toast.makeText(this, newFav ? "Added to Favourites ♥" : "Removed from Favourites", Toast.LENGTH_SHORT).show();
+                            });
+                        });
                     }
                 }
             });
@@ -397,10 +404,12 @@ public class NowPlayingActivity extends AppCompatActivity {
 
     private void adjustLyricsOffset(long deltaMs) {
         if (mediaController == null || mediaController.getCurrentMediaItem() == null) return;
-        String mediaId = mediaController.getCurrentMediaItem().mediaId;
+        final String mediaId = mediaController.getCurrentMediaItem().mediaId;
         if (mediaId.isEmpty()) return;
         userCalibrationOffsetMs += deltaMs;
-        SongMetadataManager.setLyricsOffsetMs(this, mediaId, userCalibrationOffsetMs);
+        final long newOffset = userCalibrationOffsetMs;
+        final android.content.Context appCtx = getApplicationContext();
+        ioExecutor.execute(() -> SongMetadataManager.setLyricsOffsetMs(appCtx, mediaId, newOffset));
         lastSyncedLrcIndex = -1;
         syncProgress();
         String sign = userCalibrationOffsetMs > 0 ? "+" : "";
@@ -415,6 +424,7 @@ public class NowPlayingActivity extends AppCompatActivity {
         final String curTitle = tvTitle != null ? tvTitle.getText().toString() : "Track";
         final String curArtist = tvArtist != null ? tvArtist.getText().toString() : "Artist";
         final long durMs = Math.max(0L, mediaController.getDuration());
+        final android.content.Context appCtx = getApplicationContext();
 
         Toast.makeText(this, "✨ Syncing & formatting lyrics...", Toast.LENGTH_SHORT).show();
         OpenRouterAiHelper.autoSyncAndFormatLyrics(this, curTitle, curArtist, durMs, loadedRawLyrics, (syncedLrc, usedCloudAi) -> {
@@ -423,71 +433,98 @@ public class NowPlayingActivity extends AppCompatActivity {
                 Toast.makeText(this, "No lyrics found to sync — open Edit Track to paste or import lyrics first.", Toast.LENGTH_LONG).show();
                 return;
             }
-            Song temp = new Song(curTitle, curArtist, Uri.parse(mediaId), durMs);
-            SongMetadataManager.applySavedEdits(this, temp, false);
-            SongMetadataManager.saveSongEditFull(
-                    this,
-                    temp,
-                    temp.getTitle(),
-                    temp.getArtist(),
-                    temp.getAlbum(),
-                    temp.getTrackNumber(),
-                    temp.getYearGenre(),
-                    temp.getCustomCoverUri(),
-                    syncedLrc
-            );
-            SongMetadataManager.setLyricsOffsetMs(this, mediaId, 0L);
-            userCalibrationOffsetMs = 0L;
-            loadedRawLyrics = syncedLrc;
-            loadAndParseLyrics(syncedLrc, durMs);
-            syncProgress();
-            Toast.makeText(this,
-                    usedCloudAi
-                            ? "✨ AI synced lyrics saved to Lyrics_Synced/ (backup preserved)!"
-                            : "✨ Universal LRC rescaled & saved to Lyrics_Synced/!",
-                    Toast.LENGTH_SHORT).show();
+            ioExecutor.execute(() -> {
+                Song temp = new Song(curTitle, curArtist, Uri.parse(mediaId), durMs);
+                SongMetadataManager.applySavedEdits(appCtx, temp, false);
+                SongMetadataManager.saveSongEditFull(
+                        appCtx,
+                        temp,
+                        temp.getTitle(),
+                        temp.getArtist(),
+                        temp.getAlbum(),
+                        temp.getTrackNumber(),
+                        temp.getYearGenre(),
+                        temp.getCustomCoverUri(),
+                        syncedLrc
+                );
+                SongMetadataManager.setLyricsOffsetMs(appCtx, mediaId, 0L);
+                NavigationHelper.markLibraryDirty();
+                progressHandler.post(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    userCalibrationOffsetMs = 0L;
+                    loadedRawLyrics = syncedLrc;
+                    loadAndParseLyrics(syncedLrc, durMs);
+                    syncProgress();
+                    Toast.makeText(NowPlayingActivity.this,
+                            usedCloudAi
+                                    ? "✨ AI synced lyrics saved to Lyrics_Synced/ (backup preserved)!"
+                                    : "✨ Universal LRC rescaled & saved to Lyrics_Synced/!",
+                            Toast.LENGTH_SHORT).show();
+                });
+            });
         });
     }
 
     private void restoreCurrentSongBackupLyrics() {
         if (mediaController == null || mediaController.getCurrentMediaItem() == null) return;
-        String mediaId = mediaController.getCurrentMediaItem().mediaId;
+        final String mediaId = mediaController.getCurrentMediaItem().mediaId;
         if (mediaId.isEmpty()) return;
-        String curTitle = tvTitle != null ? tvTitle.getText().toString() : "";
-        String curArtist = tvArtist != null ? tvArtist.getText().toString() : "";
-        String restored = SongMetadataManager.restoreOriginalBackupLyrics(this, mediaId, curTitle, curArtist);
-        if (restored != null && !restored.isEmpty()) {
-            userCalibrationOffsetMs = 0L;
-            loadedRawLyrics = restored;
-            loadAndParseLyrics(restored, mediaController.getDuration());
-            syncProgress();
-            Toast.makeText(this, "Original backup lyrics restored!", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(this, "No original backup lyrics found for this track", Toast.LENGTH_SHORT).show();
-        }
+        final String curTitle = tvTitle != null ? tvTitle.getText().toString() : "";
+        final String curArtist = tvArtist != null ? tvArtist.getText().toString() : "";
+        final long durMs = mediaController.getDuration();
+        final android.content.Context appCtx = getApplicationContext();
+
+        ioExecutor.execute(() -> {
+            final String restored = SongMetadataManager.restoreOriginalBackupLyrics(appCtx, mediaId, curTitle, curArtist);
+            progressHandler.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                if (restored != null && !restored.isEmpty()) {
+                    userCalibrationOffsetMs = 0L;
+                    loadedRawLyrics = restored;
+                    loadAndParseLyrics(restored, durMs);
+                    syncProgress();
+                    Toast.makeText(NowPlayingActivity.this, "Original backup lyrics restored!", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(NowPlayingActivity.this, "No original backup lyrics found for this track", Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
     }
 
     private void aiCleanCurrentSong() {
-        if (mediaController == null) return;
+        if (mediaController == null || mediaController.getCurrentMediaItem() == null) return;
         MediaItem item = mediaController.getCurrentMediaItem();
-        if (item == null || item.mediaId.isEmpty()) return;
-        String curTitle = tvTitle.getText().toString();
-        String curArtist = tvArtist.getText().toString();
-        Toast.makeText(this, "Cleaning tags...", Toast.LENGTH_SHORT).show();
+        final String mediaId = item.mediaId;
+        if (mediaId.isEmpty()) return;
+
+        String curTitle = tvTitle != null ? tvTitle.getText().toString() : "";
+        String curArtist = tvArtist != null ? tvArtist.getText().toString() : "";
+        final android.content.Context appCtx = getApplicationContext();
+
+        Toast.makeText(this, "✨ Cleaning track metadata...", Toast.LENGTH_SHORT).show();
         OpenRouterAiHelper.autoCleanSongMetadata(this, curTitle, curArtist, (cleanTitle, cleanArtist, usedCloudAi) -> {
             if (isFinishing() || isDestroyed()) return;
-            Song temp = new Song(cleanTitle, cleanArtist, Uri.parse(item.mediaId), 0);
-            SongMetadataManager.applySavedEdits(this, temp, true);
-            SongMetadataManager.saveSongEdit(this, temp, cleanTitle, cleanArtist, temp.getCustomCoverUri(), temp.getLyrics());
-            tvTitle.setText(cleanTitle);
-            tvArtist.setText(cleanArtist);
-            Toast.makeText(this, (usedCloudAi ? "✨ AI Cleaned: " : "✨ Cleaned: ") + cleanTitle, Toast.LENGTH_SHORT).show();
+            ioExecutor.execute(() -> {
+                Song temp = new Song(cleanTitle, cleanArtist, Uri.parse(mediaId), 0);
+                SongMetadataManager.applySavedEdits(appCtx, temp, true);
+                SongMetadataManager.saveSongEdit(appCtx, temp, cleanTitle, cleanArtist, temp.getCustomCoverUri(), temp.getLyrics());
+                NavigationHelper.markLibraryDirty();
+                progressHandler.post(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    tvTitle.setText(cleanTitle);
+                    tvArtist.setText(cleanArtist);
+                    Toast.makeText(NowPlayingActivity.this,
+                            (usedCloudAi ? "✨ AI Cleaned: " : "✨ Cleaned: ") + cleanTitle,
+                            Toast.LENGTH_SHORT).show();
+                });
+            });
         });
     }
 
     private void showLyricsSyncCalibrationDialog() {
         if (mediaController == null || mediaController.getCurrentMediaItem() == null) return;
         final String mediaId = mediaController.getCurrentMediaItem().mediaId;
+        final android.content.Context appCtx = getApplicationContext();
         final long[] offsets = new long[]{-500L, -200L, 0L, 200L, 500L};
         final String[] labels = new String[]{
                 "Earlier by 500ms (-500ms)",
@@ -507,7 +544,8 @@ public class NowPlayingActivity extends AppCompatActivity {
                 .setTitle(R.string.menu_calibrate_lyrics_sync)
                 .setSingleChoiceItems(labels, checked, (dialog, which) -> {
                     userCalibrationOffsetMs = offsets[which];
-                    SongMetadataManager.setLyricsOffsetMs(this, mediaId, userCalibrationOffsetMs);
+                    final long chosenOffset = userCalibrationOffsetMs;
+                    ioExecutor.execute(() -> SongMetadataManager.setLyricsOffsetMs(appCtx, mediaId, chosenOffset));
                     lastSyncedLrcIndex = -1;
                     syncProgress();
                     dialog.dismiss();
@@ -526,6 +564,7 @@ public class NowPlayingActivity extends AppCompatActivity {
         editIntent.putExtra("EXTRA_SONG_TITLE", tvTitle != null ? tvTitle.getText().toString() : "");
         editIntent.putExtra("EXTRA_SONG_ARTIST", tvArtist != null ? tvArtist.getText().toString() : "");
         startActivity(editIntent);
+        NavigationHelper.applySlideTransition(this, true);
     }
 
     @Override
@@ -834,7 +873,7 @@ public class NowPlayingActivity extends AppCompatActivity {
             if (candidateIdx != lastSyncedLrcIndex) {
                 lastSyncedLrcIndex = candidateIdx;
                 tvLyricActive.setText(getString(R.string.lyric_active_line_fmt, parsedLrcLines.get(candidateIdx).text));
-                tvLyricActive.setTextColor(currentAccentColor);
+                tvLyricActive.setTextColor(ColorUtils.blendARGB(currentAccentColor, Color.WHITE, 0.35f));
                 if (candidateIdx + 1 < parsedLrcLines.size()) {
                     tvLyricNext.setText(parsedLrcLines.get(candidateIdx + 1).text);
                 } else {
@@ -850,7 +889,7 @@ public class NowPlayingActivity extends AppCompatActivity {
             if (idx != lastSyncedLrcIndex) {
                 lastSyncedLrcIndex = idx;
                 tvLyricActive.setText(getString(R.string.lyric_active_line_fmt, plainLyricLines.get(idx)));
-                tvLyricActive.setTextColor(currentAccentColor);
+                tvLyricActive.setTextColor(ColorUtils.blendARGB(currentAccentColor, Color.WHITE, 0.35f));
                 if (idx + 1 < plainLyricLines.size()) {
                     tvLyricNext.setText(plainLyricLines.get(idx + 1));
                 } else {
@@ -888,7 +927,7 @@ public class NowPlayingActivity extends AppCompatActivity {
         seekBar.setThumbTintList(accentList);
 
         if (!parsedLrcLines.isEmpty() || !plainLyricLines.isEmpty()) {
-            tvLyricActive.setTextColor(color);
+            tvLyricActive.setTextColor(ColorUtils.blendARGB(color, Color.WHITE, 0.35f));
         }
 
         if (mediaController != null) {
@@ -902,10 +941,17 @@ public class NowPlayingActivity extends AppCompatActivity {
         if (mediaController == null || btnFav == null) return;
         MediaItem item = mediaController.getCurrentMediaItem();
         if (item != null && !item.mediaId.isEmpty()) {
-            boolean isFav = SongMetadataManager.isFavorite(this, item.mediaId);
-            btnFav.setIconResource(isFav ? R.drawable.ic_favorite_24 : R.drawable.ic_favorite_border_24);
-            int tint = isFav ? activeColor : ContextCompat.getColor(this, R.color.text_secondary);
-            btnFav.setIconTint(ColorStateList.valueOf(tint));
+            final String mediaId = item.mediaId;
+            final android.content.Context appCtx = getApplicationContext();
+            ioExecutor.execute(() -> {
+                final boolean isFav = SongMetadataManager.isFavorite(appCtx, mediaId);
+                progressHandler.post(() -> {
+                    if (isFinishing() || isDestroyed() || btnFav == null) return;
+                    btnFav.setIconResource(isFav ? R.drawable.ic_favorite_24 : R.drawable.ic_favorite_border_24);
+                    int tint = isFav ? activeColor : ContextCompat.getColor(NowPlayingActivity.this, R.color.text_secondary);
+                    btnFav.setIconTint(ColorStateList.valueOf(tint));
+                });
+            });
         }
     }
 

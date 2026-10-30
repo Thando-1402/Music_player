@@ -12,7 +12,7 @@
         android:id="@+id/iv_fullscreen_backdrop_art"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:alpha="0.18"
+        android:alpha="0.16"
         android:importantForAccessibility="no"
         android:scaleType="centerCrop"
         android:src="@drawable/ic_album_placeholder_large"
@@ -21,14 +21,13 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- 1. FULL-BLEED EDGE-TO-EDGE ALBUM ARTWORK CONTAINER -->
+    <!-- 1. LARGE FULL-BLEED EDGE-TO-EDGE ALBUM ARTWORK CONTAINER -->
     <FrameLayout
         android:id="@+id/fullbleed_art_container"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintDimensionRatio="1:1"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHeight_percent="0.39"
+        app:layout_constraintHeight_percent="0.47"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -47,12 +46,71 @@
             android:background="@drawable/bg_scrim_fullbleed" />
     </FrameLayout>
 
-    <!-- Full-Screen Expandable Lyrics Overlay (Toggled by LYRICS button or tapping Lyrics Card) -->
+    <!-- 2. LIVE SYNCHRONIZED LYRICS OVERLAID DIRECTLY ON THE COVER ART (Transparent Background) -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/lyrics_live_card"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="10dp"
+        android:background="@android:color/transparent"
+        android:elevation="6dp"
+        android:fillViewport="true"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="6dp"
+        app:layout_constraintBottom_toBottomOf="@id/fullbleed_art_container"
+        app:layout_constraintEnd_toEndOf="@id/fullbleed_art_container"
+        app:layout_constraintStart_toStartOf="@id/fullbleed_art_container">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_lyric_active_line"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-black"
+                android:gravity="center"
+                android:lineSpacingExtra="2dp"
+                android:maxLines="2"
+                android:shadowColor="#FF000000"
+                android:shadowDx="0"
+                android:shadowDy="2"
+                android:shadowRadius="10"
+                android:text="@string/lyrics_hint_active"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/tv_lyric_next_line"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:maxLines="1"
+                android:shadowColor="#FF000000"
+                android:shadowDx="0"
+                android:shadowDy="2"
+                android:shadowRadius="8"
+                android:text="@string/lyrics_hint_next"
+                android:textColor="#F0E6EDF7"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Full-Screen Expandable Lyrics Overlay on Cover Art (Toggled by LYRICS button or tapping Lyrics) -->
     <androidx.core.widget.NestedScrollView
         android:id="@+id/lyrics_scroll_container"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:background="#F2121316"
+        android:background="#B3101216"
         android:elevation="12dp"
         android:padding="20dp"
         android:visibility="gone"
@@ -68,12 +126,16 @@
             android:fontFamily="sans-serif-bold"
             android:gravity="center_horizontal"
             android:lineSpacingExtra="8dp"
+            android:shadowColor="#FF000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="8"
             android:text="@string/no_lyrics_loaded"
             android:textColor="@color/text_primary"
             android:textSize="18sp" />
     </androidx.core.widget.NestedScrollView>
 
-    <!-- 2. TOP FLOATING APP BAR OVER ARTWORK -->
+    <!-- 3. TOP FLOATING APP BAR OVER ARTWORK -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_collapse"
         style="@style/Widget.Material3.Button.IconButton"
@@ -128,7 +190,6 @@
             android:textSize="11sp" />
     </LinearLayout>
 
-    <!-- Hidden Queue Button (Kept for ID compatibility) -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_queue"
         style="@style/Widget.Material3.Button.IconButton"
@@ -143,7 +204,6 @@
         app:layout_constraintEnd_toStartOf="@id/btn_now_playing_overflow"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Top-Right Three Dots Button for Direct Track Edit & Lyrics Sync -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_now_playing_overflow"
         style="@style/Widget.Material3.Button.IconButton"
@@ -158,74 +218,19 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- 3. ENLARGED, HIGH-VISIBILITY LIVE SYNCHRONIZED LYRICS STAGE CARD -->
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/lyrics_live_card"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="20dp"
-        android:background="@drawable/bg_rounded_card_12dp"
-        android:fillViewport="true"
-        android:minHeight="76dp"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="10dp"
-        app:layout_constraintBottom_toTopOf="@id/badges_container"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/fullbleed_art_container"
-        app:layout_constraintVertical_chainStyle="spread_inside">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/tv_lyric_active_line"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:fontFamily="sans-serif-bold"
-                android:gravity="center"
-                android:lineSpacingExtra="2dp"
-                android:maxLines="2"
-                android:shadowColor="#B3000000"
-                android:shadowDx="0"
-                android:shadowDy="2"
-                android:shadowRadius="4"
-                android:text="@string/lyrics_hint_active"
-                android:textColor="@color/text_primary"
-                android:textSize="16.5sp" />
-
-            <TextView
-                android:id="@+id/tv_lyric_next_line"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:ellipsize="end"
-                android:fontFamily="sans-serif-medium"
-                android:gravity="center"
-                android:maxLines="1"
-                android:text="@string/lyrics_hint_next"
-                android:textColor="#D6DCE5"
-                android:textSize="13.5sp" />
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
-
-    <!-- 4. DYNAMIC AUDIO FORMAT & EQ STATUS BADGES (Positioned below lyrics card) -->
+    <!-- 4. DYNAMIC AUDIO FORMAT & EQ STATUS BADGES -->
     <LinearLayout
         android:id="@+id/badges_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         app:layout_constraintBottom_toTopOf="@id/metadata_layout"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/lyrics_live_card">
+        app:layout_constraintTop_toBottomOf="@id/fullbleed_art_container"
+        app:layout_constraintVertical_chainStyle="spread_inside">
 
         <TextView
             android:id="@+id/badge_lossless_master"
@@ -457,7 +462,7 @@
         android:layout_height="42dp"
         android:layout_marginStart="20dp"
         android:layout_marginEnd="20dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="6dp"
         android:gravity="center"
         android:orientation="horizontal"
         app:layout_constraintBottom_toTopOf="@id/card_audio_route_output"
