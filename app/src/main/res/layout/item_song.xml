@@ -30,14 +30,11 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
-        <ImageView
+        <com.thando1402.auralis.EqualizerBarsView
             android:id="@+id/icon_now_playing_indicator"
             android:layout_width="20dp"
             android:layout_height="20dp"
-            android:src="@drawable/ic_equalizer_24"
-            app:tint="@color/accent_blue"
             android:background="@drawable/bg_rounded_card_12dp"
-            android:padding="2dp"
             android:visibility="gone"
             tools:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"

@@ -1,40 +1,43 @@
 package com.thando1402.auralis;
 
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.AudioDeviceInfo;
+import android.graphics.Color;
 import android.media.AudioDeviceCallback;
-import androidx.palette.graphics.Palette;
-import java.io.InputStream;
-import android.media.AudioManager;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.View;
 import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.ColorUtils;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.Player;
 import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
+import androidx.palette.graphics.Palette;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class NowPlayingActivity extends AppCompatActivity {
 
@@ -42,21 +45,35 @@ public class NowPlayingActivity extends AppCompatActivity {
     private ListenableFuture<MediaController> controllerFuture;
 
     private TextView tvTitle, tvArtist, tvTimeCurrent, tvTimeRemaining;
-    private TextView tvDeviceName, tvDeviceCodec, tvScrolledLyrics;
-    private View lyricsScrollContainer;
-    private ImageView ivArt;
+    private TextView tvDeviceName, tvDeviceCodec;
+    private TextView tvLyricActive, tvLyricNext, tvScrolledLyrics;
+    private View lyricsScrollContainer, lyricsLiveCard;
+    private ImageView ivArt, ivBackdropArt;
     private FloatingActionButton btnPlayPause;
-    private MaterialButton btnFav, btnShuffle, btnRepeat;
+    private MaterialButton btnPrev, btnNext, btnFav, btnShuffle, btnRepeat, btnLyricsSheet;
     private SeekBar seekBar;
     private boolean isTracking = false;
+    private int currentAccentColor;
     private AudioDeviceCallback audioDeviceCallback;
+
+    private static class LrcLine {
+        final long timeMs;
+        final String text;
+        LrcLine(long timeMs, String text) {
+            this.timeMs = timeMs;
+            this.text = text;
+        }
+    }
+
+    private final List<LrcLine> parsedLrcLines = new ArrayList<>();
+    private final List<String> plainLyricLines = new ArrayList<>();
 
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
     private final Runnable progressRunnable = new Runnable() {
         @Override
         public void run() {
             syncProgress();
-            progressHandler.postDelayed(this, 500);
+            progressHandler.postDelayed(this, 350);
         }
     };
 
@@ -77,11 +94,11 @@ public class NowPlayingActivity extends AppCompatActivity {
         }
         @Override
         public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {
-            syncShuffleState();
+            syncShuffleState(currentAccentColor);
         }
         @Override
         public void onRepeatModeChanged(int repeatMode) {
-            syncRepeatState();
+            syncRepeatState(currentAccentColor);
         }
     };
 
@@ -90,6 +107,8 @@ public class NowPlayingActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_now_playing);
 
+        currentAccentColor = ContextCompat.getColor(this, R.color.accent_blue);
+
         tvTitle = findViewById(R.id.tv_track_title);
         tvTitle.setSelected(true);
         tvArtist = findViewById(R.id.tv_track_artist_album);
@@ -97,10 +116,17 @@ public class NowPlayingActivity extends AppCompatActivity {
         tvTimeRemaining = findViewById(R.id.tv_time_remaining);
         tvDeviceName = findViewById(R.id.tv_connected_device_name);
         tvDeviceCodec = findViewById(R.id.tv_connected_device_codec);
+        tvLyricActive = findViewById(R.id.tv_lyric_active_line);
+        tvLyricNext = findViewById(R.id.tv_lyric_next_line);
         tvScrolledLyrics = findViewById(R.id.tv_scrolled_lyrics);
         lyricsScrollContainer = findViewById(R.id.lyrics_scroll_container);
+        lyricsLiveCard = findViewById(R.id.lyrics_live_card);
         ivArt = findViewById(R.id.iv_hero_album_art);
+        ivBackdropArt = findViewById(R.id.iv_fullscreen_backdrop_art);
         seekBar = findViewById(R.id.slider_playback_progress);
+
+        tvTitle.setShadowLayer(8f, 0f, 2f, Color.BLACK);
+        tvArtist.setShadowLayer(6f, 0f, 2f, Color.BLACK);
 
         findViewById(R.id.btn_collapse).setOnClickListener(v -> {
             finish();
@@ -120,17 +146,23 @@ public class NowPlayingActivity extends AppCompatActivity {
             }
         });
 
-        findViewById(R.id.btn_skip_previous).setOnClickListener(v -> {
+        btnPrev = findViewById(R.id.btn_skip_previous);
+        btnPrev.setOnClickListener(v -> {
             if (mediaController != null) mediaController.seekToPrevious();
         });
-        findViewById(R.id.btn_skip_next).setOnClickListener(v -> {
+
+        btnNext = findViewById(R.id.btn_skip_next);
+        btnNext.setOnClickListener(v -> {
             if (mediaController != null) mediaController.seekToNext();
         });
 
         btnShuffle = findViewById(R.id.btn_toggle_shuffle);
         btnShuffle.setOnClickListener(v -> {
             if (mediaController != null) {
-                mediaController.setShuffleModeEnabled(!mediaController.getShuffleModeEnabled());
+                boolean next = !mediaController.getShuffleModeEnabled();
+                mediaController.setShuffleModeEnabled(next);
+                syncShuffleState(currentAccentColor);
+                Toast.makeText(this, next ? "Shuffle On" : "Shuffle Off", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -138,19 +170,35 @@ public class NowPlayingActivity extends AppCompatActivity {
         btnRepeat.setOnClickListener(v -> {
             if (mediaController != null) {
                 int mode = mediaController.getRepeatMode();
-                mediaController.setRepeatMode(mode == Player.REPEAT_MODE_OFF
+                int nextMode = mode == Player.REPEAT_MODE_OFF
                         ? Player.REPEAT_MODE_ALL
-                        : (mode == Player.REPEAT_MODE_ALL ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF));
+                        : (mode == Player.REPEAT_MODE_ALL ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
+                mediaController.setRepeatMode(nextMode);
+                syncRepeatState(currentAccentColor);
+                String label = nextMode == Player.REPEAT_MODE_ALL ? "Repeat All"
+                        : (nextMode == Player.REPEAT_MODE_ONE ? "Repeat One" : "Repeat Off");
+                Toast.makeText(this, label, Toast.LENGTH_SHORT).show();
             }
         });
 
-        findViewById(R.id.btn_lyrics_sheet).setOnClickListener(v -> {
-            if (lyricsScrollContainer != null) {
-                boolean isVisible = lyricsScrollContainer.getVisibility() == View.VISIBLE;
-                lyricsScrollContainer.setVisibility(isVisible ? View.GONE : View.VISIBLE);
-                ivArt.setVisibility(isVisible ? View.VISIBLE : View.GONE);
-                // Also toggle the scrims if you want, but they're mostly behind lyrics anyway
+        btnLyricsSheet = findViewById(R.id.btn_lyrics_sheet);
+        View.OnClickListener toggleLyricsAction = v -> {
+            if (parsedLrcLines.isEmpty() && plainLyricLines.isEmpty()) {
+                openTrackEditorForCurrentSong();
+                return;
             }
+            if (lyricsScrollContainer != null) {
+                boolean show = lyricsScrollContainer.getVisibility() != View.VISIBLE;
+                lyricsScrollContainer.setVisibility(show ? View.VISIBLE : View.GONE);
+            }
+        };
+        btnLyricsSheet.setOnClickListener(toggleLyricsAction);
+        if (lyricsLiveCard != null) {
+            lyricsLiveCard.setOnClickListener(toggleLyricsAction);
+        }
+        btnLyricsSheet.setOnLongClickListener(v -> {
+            openTrackEditorForCurrentSong();
+            return true;
         });
 
         btnFav = findViewById(R.id.btn_toggle_favorite);
@@ -161,7 +209,7 @@ public class NowPlayingActivity extends AppCompatActivity {
                     if (item != null && !item.mediaId.isEmpty()) {
                         boolean newFav = !SongMetadataManager.isFavorite(this, item.mediaId);
                         SongMetadataManager.setFavorite(this, item.mediaId, newFav);
-                        syncFavoriteState();
+                        syncFavoriteState(currentAccentColor);
                         Toast.makeText(this, newFav ? "Added to Favourites ♥" : "Removed from Favourites", Toast.LENGTH_SHORT).show();
                     }
                 }
@@ -169,7 +217,7 @@ public class NowPlayingActivity extends AppCompatActivity {
         }
 
         findViewById(R.id.card_audio_route_output).setOnClickListener(v -> {
-            detectActiveDacOutput();
+            PlaybackStateHelper.updateOutputLabels(this, tvDeviceName, tvDeviceCodec);
             Toast.makeText(this, "Hardware audio route refreshed", Toast.LENGTH_SHORT).show();
         });
 
@@ -182,6 +230,7 @@ public class NowPlayingActivity extends AppCompatActivity {
                         long newPos = (duration * progress) / 1000L;
                         tvTimeCurrent.setText(formatTime(newPos));
                         tvTimeRemaining.setText("-" + formatTime(duration - newPos));
+                        updateSynchronizedLyrics(newPos, duration);
                     }
                 }
             }
@@ -200,47 +249,24 @@ public class NowPlayingActivity extends AppCompatActivity {
                 isTracking = false;
             }
         });
-
-        detectActiveDacOutput();
     }
 
-    private void detectActiveDacOutput() {
-        if (tvDeviceName == null || tvDeviceCodec == null) return;
-        String deviceTitle = "Internal Hi-Fi Speaker DAC";
-        String codecLabel = "24-BIT PCM";
-        try {
-            AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-            if (am != null) {
-                for (AudioDeviceInfo d : am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
-                    int type = d.getType();
-                    String prod = d.getProductName() != null ? d.getProductName().toString() : "";
-                    if (type == AudioDeviceInfo.TYPE_WIRED_HEADSET || type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES) {
-                        deviceTitle = "3.5mm Wired Headphones";
-                        codecLabel = "ANALOG 24/96";
-                        break;
-                    } else if (type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) {
-                        deviceTitle = !prod.isEmpty() ? prod : "Bluetooth Audio";
-                        codecLabel = "A2DP / LDAC";
-                        break;
-                    } else if (type == AudioDeviceInfo.TYPE_USB_HEADSET || type == AudioDeviceInfo.TYPE_USB_DEVICE) {
-                        deviceTitle = !prod.isEmpty() ? prod : "External USB DAC";
-                        codecLabel = "USB BIT-PERFECT";
-                        break;
-                    }
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        tvDeviceName.setText(deviceTitle);
-        tvDeviceCodec.setText(codecLabel);
+    private void openTrackEditorForCurrentSong() {
+        if (mediaController == null) return;
+        MediaItem item = mediaController.getCurrentMediaItem();
+        if (item == null || item.mediaId.isEmpty()) return;
+        Intent editIntent = new Intent(this, EditTrackActivity.class);
+        editIntent.putExtra("EXTRA_SONG_URI", item.mediaId);
+        editIntent.putExtra("EXTRA_SONG_TITLE", item.mediaMetadata.title != null ? item.mediaMetadata.title.toString() : "");
+        editIntent.putExtra("EXTRA_SONG_ARTIST", item.mediaMetadata.artist != null ? item.mediaMetadata.artist.toString() : "");
+        startActivity(editIntent);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        
         audioDeviceCallback = PlaybackStateHelper.registerLiveOutputTracker(this, tvDeviceName, tvDeviceCodec);
-        
+
         SessionToken sessionToken = new SessionToken(this, new ComponentName(this, PlaybackService.class));
         controllerFuture = new MediaController.Builder(this, sessionToken).buildAsync();
         controllerFuture.addListener(() -> {
@@ -249,11 +275,19 @@ public class NowPlayingActivity extends AppCompatActivity {
                 mediaController.addListener(playerListener);
                 syncMetadata();
                 syncPlayPauseState();
-                syncShuffleState();
-                syncRepeatState();
+                syncShuffleState(currentAccentColor);
+                syncRepeatState(currentAccentColor);
                 if (mediaController.isPlaying()) progressHandler.post(progressRunnable);
             } catch (Exception ignored) {}
         }, ContextCompat.getMainExecutor(this));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mediaController != null) {
+            syncMetadata();
+        }
     }
 
     @Override
@@ -277,86 +311,160 @@ public class NowPlayingActivity extends AppCompatActivity {
     private void syncMetadata() {
         if (mediaController == null) return;
         MediaItem item = mediaController.getCurrentMediaItem();
-        if (item != null) {
-            tvTitle.setText(item.mediaMetadata.title != null ? item.mediaMetadata.title : "Unknown Track");
-            tvArtist.setText(item.mediaMetadata.artist != null ? item.mediaMetadata.artist : "Unknown Artist");
-            
-            // Try to load lyrics
-            if (item.mediaId != null) {
-                 Song temp = new Song("", "", Uri.parse(item.mediaId), 0);
-                 SongMetadataManager.applySavedEdits(this, temp);
-                 TextView tvLyrics = findViewById(R.id.tv_scrolled_lyrics);
-                 if (tvLyrics != null) {
-                     String lyrics = temp.getLyrics();
-                     if (lyrics != null && !lyrics.trim().isEmpty()) {
-                         tvLyrics.setText(lyrics);
-                         tvLyrics.setVisibility(View.VISIBLE);
-                     } else {
-                         tvLyrics.setText("No synchronized lyrics found.\nTap 'LYRICS / EDIT' below to paste or load an .lrc file.");
-                         tvLyrics.setVisibility(View.VISIBLE);
-                     }
-                 }
-            }
-            
-            if (item.mediaMetadata.artworkUri != null) {
+        if (item != null && !item.mediaId.isEmpty()) {
+            String rawTitle = item.mediaMetadata.title != null ? item.mediaMetadata.title.toString() : "Unknown Track";
+            String rawArtist = item.mediaMetadata.artist != null ? item.mediaMetadata.artist.toString() : "Unknown Artist";
+            Song temp = new Song(rawTitle, rawArtist, Uri.parse(item.mediaId), 0);
+            SongMetadataManager.applySavedEdits(this, temp);
+
+            tvTitle.setText(temp.getTitle());
+            tvArtist.setText(temp.getArtist());
+
+            loadAndParseLyrics(temp.getLyrics());
+
+            Uri coverUri = temp.getCustomCoverUri() != null ? temp.getCustomCoverUri() : item.mediaMetadata.artworkUri;
+            if (coverUri != null) {
                 try {
-                    ivArt.setImageURI(item.mediaMetadata.artworkUri);
+                    ivArt.setImageURI(coverUri);
                     if (ivArt.getDrawable() == null) {
-                        ivArt.setImageResource(R.drawable.ic_album_placeholder);
+                        ivArt.setImageResource(R.drawable.ic_album_placeholder_large);
+                        if (ivBackdropArt != null) ivBackdropArt.setImageResource(R.drawable.ic_album_placeholder);
+                        resetPalette();
                     } else {
-                        extractPalette(item.mediaMetadata.artworkUri);
+                        if (ivBackdropArt != null) ivBackdropArt.setImageURI(coverUri);
+                        extractPalette(coverUri);
                     }
                 } catch (Exception e) {
-                    ivArt.setImageResource(R.drawable.ic_album_placeholder);
+                    ivArt.setImageResource(R.drawable.ic_album_placeholder_large);
+                    if (ivBackdropArt != null) ivBackdropArt.setImageResource(R.drawable.ic_album_placeholder);
+                    resetPalette();
                 }
             } else {
-                ivArt.setImageResource(R.drawable.ic_album_placeholder);
+                ivArt.setImageResource(R.drawable.ic_album_placeholder_large);
+                if (ivBackdropArt != null) ivBackdropArt.setImageResource(R.drawable.ic_album_placeholder);
                 resetPalette();
             }
         }
         syncProgress();
-        syncFavoriteState();
+        syncFavoriteState(currentAccentColor);
+    }
+
+    private void loadAndParseLyrics(String rawLyrics) {
+        parsedLrcLines.clear();
+        plainLyricLines.clear();
+        if (rawLyrics == null || rawLyrics.trim().isEmpty()) {
+            if (tvLyricActive != null) tvLyricActive.setText("♪ Tap LYRICS below to load .lrc or paste lyrics");
+            if (tvLyricNext != null) tvLyricNext.setText("Long-press LYRICS to open Track Editor");
+            if (tvScrolledLyrics != null) tvScrolledLyrics.setText("No lyrics saved for this track.");
+            return;
+        }
+        if (tvScrolledLyrics != null) {
+            tvScrolledLyrics.setText(rawLyrics.replaceAll("\\[\\d{1,2}:\\d{2}(?:\\.\\d{1,3})?\\]", "").trim());
+        }
+        Pattern lrcPattern = Pattern.compile("\\[(\\d{1,2}):(\\d{2})(?:\\.(\\d{1,3}))?\\](.*)");
+        String[] lines = rawLyrics.split("\\r?\\n");
+        for (String line : lines) {
+            Matcher m = lrcPattern.matcher(line.trim());
+            if (m.matches()) {
+                long min = Long.parseLong(m.group(1));
+                long sec = Long.parseLong(m.group(2));
+                String msPart = m.group(3);
+                long ms = 0;
+                if (msPart != null && !msPart.isEmpty()) {
+                    ms = Long.parseLong(msPart) * (msPart.length() == 1 ? 100 : (msPart.length() == 2 ? 10 : 1));
+                }
+                String text = m.group(4) != null ? m.group(4).trim() : "";
+                if (!text.isEmpty()) {
+                    parsedLrcLines.add(new LrcLine(min * 60000L + sec * 1000L + ms, text));
+                }
+            } else if (!line.trim().isEmpty() && !line.trim().startsWith("[")) {
+                plainLyricLines.add(line.trim());
+            }
+        }
+    }
+
+    private void updateSynchronizedLyrics(long posMs, long durMs) {
+        if (tvLyricActive == null || tvLyricNext == null) return;
+        if (!parsedLrcLines.isEmpty()) {
+            int activeIdx = 0;
+            for (int i = 0; i < parsedLrcLines.size(); i++) {
+                if (posMs >= parsedLrcLines.get(i).timeMs) {
+                    activeIdx = i;
+                } else {
+                    break;
+                }
+            }
+            tvLyricActive.setText("♪ " + parsedLrcLines.get(activeIdx).text);
+            tvLyricActive.setTextColor(currentAccentColor);
+            if (activeIdx + 1 < parsedLrcLines.size()) {
+                tvLyricNext.setText(parsedLrcLines.get(activeIdx + 1).text);
+            } else {
+                tvLyricNext.setText("");
+            }
+        } else if (!plainLyricLines.isEmpty() && durMs > 0) {
+            int idx = (int) ((posMs * plainLyricLines.size()) / durMs);
+            idx = Math.max(0, Math.min(plainLyricLines.size() - 1, idx));
+            tvLyricActive.setText("♪ " + plainLyricLines.get(idx));
+            tvLyricActive.setTextColor(currentAccentColor);
+            if (idx + 1 < plainLyricLines.size()) {
+                tvLyricNext.setText(plainLyricLines.get(idx + 1));
+            } else {
+                tvLyricNext.setText("");
+            }
+        }
     }
 
     private void extractPalette(Uri artUri) {
         try (InputStream is = getContentResolver().openInputStream(artUri)) {
-            if (is == null) return;
+            if (is == null) {
+                resetPalette();
+                return;
+            }
             Bitmap bitmap = BitmapFactory.decodeStream(is);
             if (bitmap != null) {
                 Palette.from(bitmap).generate(palette -> {
                     if (palette != null && !isDestroyed()) {
                         int defaultColor = ContextCompat.getColor(this, R.color.accent_blue);
-                        int color = palette.getVibrantColor(palette.getDominantColor(defaultColor));
-                        applyThemeColor(color);
+                        int raw = palette.getVibrantColor(palette.getLightVibrantColor(palette.getDominantColor(defaultColor)));
+                        int safeColor = PlaybackStateHelper.ensureReadableAccent(raw, defaultColor);
+                        applyThemeColor(safeColor);
                     }
                 });
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            resetPalette();
         }
     }
-    
+
     private void resetPalette() {
         applyThemeColor(ContextCompat.getColor(this, R.color.accent_blue));
     }
-    
+
     private void applyThemeColor(int color) {
-        btnPlayPause.setBackgroundTintList(android.content.res.ColorStateList.valueOf(color));
-        seekBar.setProgressTintList(android.content.res.ColorStateList.valueOf(color));
-        seekBar.setThumbTintList(android.content.res.ColorStateList.valueOf(color));
-        
-        // Darken text for badges to ensure contrast against potential bright backgrounds
-        int textColor = ContextCompat.getColor(this, R.color.text_primary);
-        ((TextView) findViewById(R.id.tv_lossless_badge)).setTextColor(textColor);
-        
+        currentAccentColor = color;
+        ColorStateList accentList = ColorStateList.valueOf(color);
+
+        btnPlayPause.setBackgroundTintList(accentList);
+        int fabIconColor = ColorUtils.calculateLuminance(color) > 0.42 ? Color.parseColor("#121316") : Color.WHITE;
+        btnPlayPause.setSupportImageTintList(ColorStateList.valueOf(fabIconColor));
+
+        if (btnPrev != null) btnPrev.setIconTint(accentList);
+        if (btnNext != null) btnNext.setIconTint(accentList);
+        if (btnLyricsSheet != null) btnLyricsSheet.setIconTint(accentList);
+
+        TextView badge = findViewById(R.id.tv_lossless_badge);
+        if (badge != null) {
+            badge.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        }
+
+        seekBar.setProgressTintList(accentList);
+        seekBar.setThumbTintList(accentList);
+
         if (mediaController != null) {
             syncFavoriteState(color);
             syncShuffleState(color);
             syncRepeatState(color);
         }
-    }
-    
-    private void syncFavoriteState() {
-        syncFavoriteState(ContextCompat.getColor(this, R.color.accent_blue));
     }
 
     private void syncFavoriteState(int activeColor) {
@@ -365,7 +473,8 @@ public class NowPlayingActivity extends AppCompatActivity {
         if (item != null && !item.mediaId.isEmpty()) {
             boolean isFav = SongMetadataManager.isFavorite(this, item.mediaId);
             btnFav.setIconResource(isFav ? R.drawable.ic_favorite_24 : R.drawable.ic_favorite_border_24);
-            btnFav.setIconTintResource(isFav ? activeColor : R.color.text_secondary);
+            int tint = isFav ? activeColor : ContextCompat.getColor(this, R.color.text_secondary);
+            btnFav.setIconTint(ColorStateList.valueOf(tint));
         }
     }
 
@@ -374,23 +483,17 @@ public class NowPlayingActivity extends AppCompatActivity {
         btnPlayPause.setImageResource(mediaController.isPlaying() ? R.drawable.ic_pause_24 : R.drawable.ic_play_arrow_24);
     }
 
-    private void syncShuffleState() {
-        syncShuffleState(ContextCompat.getColor(this, R.color.accent_blue));
-    }
-
     private void syncShuffleState(int activeColor) {
         if (mediaController == null || btnShuffle == null) return;
-        btnShuffle.setIconTintResource(mediaController.getShuffleModeEnabled() ? activeColor : R.color.text_secondary);
-    }
-
-    private void syncRepeatState() {
-        syncRepeatState(ContextCompat.getColor(this, R.color.accent_blue));
+        int tint = mediaController.getShuffleModeEnabled() ? activeColor : ContextCompat.getColor(this, R.color.text_secondary);
+        btnShuffle.setIconTint(ColorStateList.valueOf(tint));
     }
 
     private void syncRepeatState(int activeColor) {
         if (mediaController == null || btnRepeat == null) return;
         int mode = mediaController.getRepeatMode();
-        btnRepeat.setIconTintResource(mode != Player.REPEAT_MODE_OFF ? activeColor : R.color.text_secondary);
+        int tint = mode != Player.REPEAT_MODE_OFF ? activeColor : ContextCompat.getColor(this, R.color.text_secondary);
+        btnRepeat.setIconTint(ColorStateList.valueOf(tint));
     }
 
     private void syncProgress() {
@@ -401,6 +504,7 @@ public class NowPlayingActivity extends AppCompatActivity {
             seekBar.setProgress((int) ((pos * 1000L) / dur));
             tvTimeCurrent.setText(formatTime(pos));
             tvTimeRemaining.setText("-" + formatTime(dur - pos));
+            updateSynchronizedLyrics(pos, dur);
         }
     }
 

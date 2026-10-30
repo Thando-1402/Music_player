@@ -5,27 +5,34 @@
     android:id="@+id/root_now_playing_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_window">
+    android:background="@color/bg_window"
+    android:fitsSystemWindows="true">
 
-    <!-- Full-Screen Expanded Background Artwork (Edge-to-Edge) -->
+    <!-- Full-Screen Immersive Backdrop Art -->
     <ImageView
         android:id="@+id/iv_fullscreen_backdrop_art"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:scaleType="centerCrop"
+        android:alpha="0.35"
         android:src="@drawable/ic_album_placeholder"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Gradient Scrim for 60fps Contrast -->
     <View
-        android:id="@+id/view_fullscreen_scrim"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="@drawable/bg_full_player_scrim"
+        android:layout_height="160dp"
+        android:background="@drawable/bg_scrim_top"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="460dp"
+        android:background="@drawable/bg_scrim_bottom"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -47,9 +54,9 @@
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_collapse"
         style="@style/Widget.Material3.Button.IconButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginTop="16dp"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginTop="4dp"
         app:icon="@drawable/ic_keyboard_arrow_down_24"
         app:iconSize="28dp"
         app:iconTint="@color/text_primary"
@@ -74,43 +81,130 @@
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_queue"
         style="@style/Widget.Material3.Button.IconButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
         app:icon="@drawable/ic_queue_music_24"
-        app:iconSize="24dp"
+        app:iconSize="22dp"
         app:iconTint="@color/text_primary"
         app:layout_constraintEnd_toEndOf="@id/guideline_end"
         app:layout_constraintTop_toTopOf="@id/btn_collapse"
         app:layout_constraintBottom_toBottomOf="@id/btn_collapse" />
 
-    <!-- Unsquashed 1:1 Square Album Art -->
+    <!-- 1:1 Square Hero Artwork Card (Never Squashed) -->
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/iv_hero_album_art"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="8dp"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="8dp"
         android:scaleType="centerCrop"
-        android:src="@drawable/ic_album_placeholder"
+        android:src="@drawable/ic_album_placeholder_large"
         app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintEnd_toEndOf="@id/guideline_end"
-        app:layout_constraintStart_toStartOf="@id/guideline_start"
+        app:layout_constraintHeight_max="250dp"
         app:layout_constraintTop_toBottomOf="@id/btn_collapse"
-        app:layout_constraintBottom_toTopOf="@id/tv_track_title"
+        app:layout_constraintBottom_toTopOf="@id/lyrics_live_card"
+        app:layout_constraintStart_toStartOf="@id/guideline_start"
+        app:layout_constraintEnd_toEndOf="@id/guideline_end"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large"
         app:strokeColor="#33FFFFFF"
         app:strokeWidth="1dp" />
 
-    <!-- Track Title & Artist -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/tv_lossless_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/bg_rounded_card_12dp"
+        android:drawableStart="@drawable/ic_equalizer_24"
+        android:drawablePadding="4dp"
+        android:drawableTint="@color/accent_blue"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="3dp"
+        android:text="Hi-Res Lossless"
+        android:textColor="@color/text_primary"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@id/iv_hero_album_art"
+        app:layout_constraintStart_toStartOf="@id/iv_hero_album_art" />
+
+    <!-- Live Auto-Scrolling Synchronized Lyrics Banner -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/lyrics_live_card"
+        android:layout_width="0dp"
+        android:layout_height="68dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_rounded_card_12dp"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="6dp"
+        app:layout_constraintBottom_toTopOf="@id/tv_track_title"
+        app:layout_constraintStart_toStartOf="@id/guideline_start"
+        app:layout_constraintEnd_toEndOf="@id/guideline_end">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_lyric_active_line"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="♪ Tap LYRICS below to view or load .lrc lyrics"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:id="@+id/tv_lyric_next_line"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="center"
+                android:text=""
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Full-Screen Expandable Lyrics Overlay (Toggled by LYRICS button) -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/lyrics_scroll_container"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#E6121316"
+        android:padding="18dp"
+        android:visibility="gone"
+        android:elevation="12dp"
+        app:layout_constraintTop_toTopOf="@id/iv_hero_album_art"
+        app:layout_constraintBottom_toBottomOf="@id/iv_hero_album_art"
+        app:layout_constraintStart_toStartOf="@id/guideline_start"
+        app:layout_constraintEnd_toEndOf="@id/guideline_end">
+
+        <TextView
+            android:id="@+id/tv_scrolled_lyrics"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:lineSpacingExtra="6dp"
+            android:text="No lyrics loaded."
+            android:textColor="@color/text_primary"
+            android:textSize="15sp"
+            android:fontFamily="sans-serif-medium" />
+    </androidx.core.widget.NestedScrollView>
+
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/tv_track_title"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
         android:ellipsize="marquee"
         android:marqueeRepeatLimit="marquee_forever"
         android:scrollHorizontally="true"
         android:singleLine="true"
-        android:text="Track Title"
+        android:text="Select a track"
         android:textColor="@color/text_primary"
         android:textSize="20sp"
         android:textStyle="bold"
@@ -123,10 +217,11 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
+        android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
         android:ellipsize="end"
         android:singleLine="true"
-        android:text="Artist Name"
+        android:text="Auralis Hi-Res Audio"
         android:textColor="@color/text_secondary"
         android:textSize="14sp"
         app:layout_constraintBottom_toTopOf="@id/slider_playback_progress"
@@ -145,13 +240,14 @@
         app:layout_constraintEnd_toEndOf="@id/guideline_end"
         app:layout_constraintTop_toTopOf="@id/tv_track_title" />
 
-    <!-- Progress Bar & Times -->
     <SeekBar
         android:id="@+id/slider_playback_progress"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="2dp"
         android:max="1000"
+        android:progressTint="@color/accent_blue"
+        android:thumbTint="@color/accent_blue"
         app:layout_constraintBottom_toTopOf="@id/tv_time_current"
         app:layout_constraintEnd_toEndOf="@id/guideline_end"
         app:layout_constraintStart_toStartOf="@id/guideline_start" />
@@ -160,7 +256,7 @@
         android:id="@+id/tv_time_current"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
+        android:layout_marginStart="6dp"
         android:layout_marginBottom="8dp"
         android:fontFamily="monospace"
         android:text="0:00"
@@ -173,7 +269,7 @@
         android:id="@+id/tv_time_remaining"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="4dp"
+        android:layout_marginEnd="6dp"
         android:fontFamily="monospace"
         android:text="-0:00"
         android:textColor="@color/text_secondary"
@@ -181,14 +277,13 @@
         app:layout_constraintBaseline_toBaselineOf="@id/tv_time_current"
         app:layout_constraintEnd_toEndOf="@id/guideline_end" />
 
-    <!-- Playback Controls -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_skip_previous"
         style="@style/Widget.Material3.Button.IconButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
         app:icon="@drawable/ic_skip_previous_24"
-        app:iconSize="28dp"
+        app:iconSize="30dp"
         app:iconTint="@color/text_primary"
         app:layout_constraintBottom_toBottomOf="@id/btn_play_pause_fab"
         app:layout_constraintEnd_toStartOf="@id/btn_play_pause_fab"
@@ -200,7 +295,7 @@
         android:id="@+id/btn_play_pause_fab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="10dp"
         app:backgroundTint="@color/accent_blue"
         app:elevation="4dp"
         app:fabCustomSize="64dp"
@@ -215,10 +310,10 @@
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_skip_next"
         style="@style/Widget.Material3.Button.IconButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
         app:icon="@drawable/ic_skip_next_24"
-        app:iconSize="28dp"
+        app:iconSize="30dp"
         app:iconTint="@color/text_primary"
         app:layout_constraintBottom_toBottomOf="@id/btn_play_pause_fab"
         app:layout_constraintEnd_toEndOf="@id/guideline_end"
@@ -241,17 +336,19 @@
         android:id="@+id/btn_lyrics_sheet"
         style="@style/Widget.Material3.Button.TonalButton"
         android:layout_width="wrap_content"
-        android:layout_height="32dp"
-        android:layout_marginBottom="12dp"
+        android:layout_height="34dp"
+        android:layout_marginBottom="10dp"
         android:backgroundTint="@color/surface_card"
         android:fontFamily="sans-serif-medium"
-        android:text="LYRICS / EDIT"
+        android:paddingStart="14dp"
+        android:paddingEnd="16dp"
+        android:text="LYRICS"
         android:textColor="@color/text_primary"
         android:textSize="11sp"
-        app:cornerRadius="16dp"
+        app:cornerRadius="17dp"
         app:icon="@drawable/ic_library_music_24"
         app:iconSize="16dp"
-        app:iconTint="@color/text_secondary"
+        app:iconTint="@color/accent_blue"
         app:layout_constraintBottom_toTopOf="@id/card_audio_route_output"
         app:layout_constraintEnd_toStartOf="@id/btn_toggle_repeat"
         app:layout_constraintStart_toEndOf="@id/btn_toggle_shuffle" />
@@ -268,12 +365,11 @@
         app:layout_constraintEnd_toEndOf="@id/guideline_end"
         app:layout_constraintTop_toTopOf="@id/btn_lyrics_sheet" />
 
-    <!-- Hardware DAC Route Output Card -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_audio_route_output"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="10dp"
         android:clickable="true"
         android:focusable="true"
         app:cardBackgroundColor="#CC1E1F22"
@@ -282,7 +378,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="@id/guideline_end"
         app:layout_constraintStart_toStartOf="@id/guideline_start"
-        app:strokeColor="#33FFFFFF"
+        app:strokeColor="#26FFFFFF"
         app:strokeWidth="1dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -310,7 +406,7 @@
                 android:ellipsize="end"
                 android:fontFamily="sans-serif-medium"
                 android:singleLine="true"
-                android:text="Internal Hi-Fi Speaker"
+                android:text="Internal Hi-Fi Speaker DAC"
                 android:textColor="@color/text_primary"
                 android:textSize="12sp"
                 app:layout_constraintBottom_toTopOf="@id/tv_connected_device_codec"
@@ -329,7 +425,7 @@
                 android:singleLine="true"
                 android:text="24-BIT PCM • SPEAKER"
                 android:textColor="@color/text_secondary"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/btn_switch_audio_route"
                 app:layout_constraintStart_toEndOf="@id/iv_route_type_icon"
@@ -338,8 +434,8 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_switch_audio_route"
                 style="@style/Widget.Material3.Button.IconButton"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
                 app:icon="@drawable/ic_sync_24"
                 app:iconSize="18dp"
                 app:iconTint="@color/text_secondary"
@@ -348,5 +444,4 @@
                 app:layout_constraintTop_toTopOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.card.MaterialCardView>
-
 </androidx.constraintlayout.widget.ConstraintLayout>

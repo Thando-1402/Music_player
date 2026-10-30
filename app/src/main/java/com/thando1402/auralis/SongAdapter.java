@@ -65,6 +65,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         boolean isCurrent = (position == selectedPosition);
         if (holder.indicator != null) {
             holder.indicator.setVisibility(isCurrent ? View.VISIBLE : View.GONE);
+            holder.indicator.animateBars(isCurrent);
         }
         holder.textTitle.setTextColor(ContextCompat.getColor(
                 holder.itemView.getContext(),
@@ -121,7 +122,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
     static class SongViewHolder extends RecyclerView.ViewHolder {
         TextView textTitle, textArtist, textCodec;
         ShapeableImageView imageArt;
-        ImageView indicator;
+        EqualizerBarsView indicator;
         View btnOptions;
 
         public SongViewHolder(@NonNull View itemView) {
