@@ -352,16 +352,8 @@ public class NowPlayingActivity extends AppCompatActivity {
     private void loadAndParseLyrics(String rawLyrics) {
         parsedLrcLines.clear();
         plainLyricLines.clear();
-        if (rawLyrics == null || rawLyrics.trim().isEmpty()) {
-            if (tvLyricActive != null) tvLyricActive.setText("♪ Tap LYRICS below to load .lrc or paste lyrics");
-            if (tvLyricNext != null) tvLyricNext.setText("Long-press LYRICS to open Track Editor");
-            if (tvScrolledLyrics != null) tvScrolledLyrics.setText("No lyrics saved for this track.");
-            return;
-        }
-        if (tvScrolledLyrics != null) {
-            tvScrolledLyrics.setText(rawLyrics.replaceAll("\\[\\d{1,2}:\\d{2}(?:\\.\\d{1,3})?\\]", "").trim());
-        }
         Pattern lrcPattern = Pattern.compile("\\[(\\d{1,2}):(\\d{2})(?:\\.(\\d{1,3}))?\\](.*)");
+        if (rawLyrics == null) return;
         String[] lines = rawLyrics.split("\\r?\\n");
         for (String line : lines) {
             Matcher m = lrcPattern.matcher(line.trim());
@@ -452,7 +444,7 @@ public class NowPlayingActivity extends AppCompatActivity {
         if (btnNext != null) btnNext.setIconTint(accentList);
         if (btnLyricsSheet != null) btnLyricsSheet.setIconTint(accentList);
 
-        TextView badge = findViewById(R.id.tv_lossless_badge);
+        TextView badge = findViewById(R.id.badge_lossless_master);
         if (badge != null) {
             badge.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
         }
