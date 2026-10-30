@@ -1,3 +1,14 @@
 <resources>
     <string name="app_name">Auralis</string>
+    <string name="no_music_playing">No music playing</string>
+    <string name="tap_to_select_track">Tap a song in your library to start listening</string>
+    <string name="now_playing_header">NOW PLAYING</string>
+    <string name="select_a_track">Select a track</string>
+    <string name="auralis_hires_audio">Auralis Audio Engine</string>
+    <string name="lyrics_action">LYRICS</string>
+    <string name="eq_profile_action">EQ Profile</string>
+    <string name="auto_detected_badge">LIVE OUTPUT</string>
+    <string name="no_lyrics_loaded">No lyrics saved for this track.</string>
+    <string name="lyrics_hint_active">♪ Tap LYRICS below to view or load .lrc lyrics</string>
+    <string name="lyrics_hint_next">Long-press LYRICS to open Track Editor</string>
 </resources>
