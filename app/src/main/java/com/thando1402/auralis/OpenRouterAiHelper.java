@@ -39,7 +39,6 @@ import java.util.regex.Pattern;
 public class OpenRouterAiHelper {
 
     public static final String PREFS_NAME = "auralis_settings";
-    public static final String KEY_OPENROUTER_API = "openrouter_api_key";
     public static final String KEY_PROFILE_NAME = "profile_display_name";
     private static final String KEY_FIRST_LAUNCH_PROMPTED = "profile_welcome_prompted";
     private static boolean appCheckInitialized = false;
@@ -67,24 +66,15 @@ public class OpenRouterAiHelper {
             Object appCheckInstance = appCheckClass.getMethod("getInstance").invoke(null);
             Object debugFactoryInstance = debugFactoryClass.getMethod("getInstance").invoke(null);
             Method installMethod = appCheckClass.getMethod("installAppCheckProviderFactory", factoryBaseClass);
-            installMethod.invoke(appCheckInstance, debugFactoryInstance);
+            installMethod.invoke(appCheckInstance, (Object) debugFactoryInstance);
             appCheckInitialized = true;
         } catch (Exception ignored) {
             // Release builds or unconfigured environments safely skip debug AppCheck
         }
     }
 
-    public static void saveApiKey(Context context, String apiKey) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        prefs.edit().putString(KEY_OPENROUTER_API, apiKey != null ? apiKey.trim() : "").apply();
-    }
-
     public static String getApiKey(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String manualKey = prefs.getString(KEY_OPENROUTER_API, "");
-        if (!manualKey.trim().isEmpty()) {
-            return manualKey.trim();
-        }
+        if (context == null) return "";
         try {
             String buildKey = context.getString(R.string.default_openrouter_key);
             if (!buildKey.trim().isEmpty()) {
@@ -480,7 +470,7 @@ public class OpenRouterAiHelper {
         String artist = (rawArtist != null && !rawArtist.contains("<unknown>")) ? rawArtist : "Unknown Artist";
 
         title = title.replace("_", " ")
-                .replaceAll("(?i)\\(official.*?\\)|\\[official.*?\\]|\\(lyrics.*?\\)|\\[lyrics.*?\\]|\\(audio\\)|\\[audio\\]|\\bHD\\b|\\bHQ\\b|\\b320kbps\\b|\\b128kbps\\b", "")
+                .replaceAll("(?i)\\(official.*?\\)|\\[official.*?]|\\(lyrics.*?\\)|\\[lyrics.*?]|\\(audio\\)|\\[audio]|\\bHD\\b|\\bHQ\\b|\\b320kbps\\b|\\b128kbps\\b", "")
                 .replaceAll("\\s+", " ")
                 .trim();
 

@@ -6,9 +6,6 @@ import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
-import android.media.AudioDeviceCallback;
-import android.media.AudioDeviceInfo;
-import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -279,36 +276,5 @@ public class PlaybackStateHelper {
         } catch (Exception e) {
             return false;
         }
-    }
-
-    public static AudioDeviceCallback registerLiveOutputTracker(Context context, TextView tvDeviceName, TextView tvCodec) {
-        updateOutputLabels(context, tvDeviceName, tvCodec);
-        AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        if (am == null) return null;
-        AudioDeviceCallback callback = new AudioDeviceCallback() {
-            @Override
-            public void onAudioDevicesAdded(AudioDeviceInfo[] addedDevices) {
-                updateOutputLabels(context, tvDeviceName, tvCodec);
-            }
-            @Override
-            public void onAudioDevicesRemoved(AudioDeviceInfo[] removedDevices) {
-                updateOutputLabels(context, tvDeviceName, tvCodec);
-            }
-        };
-        am.registerAudioDeviceCallback(callback, new Handler(Looper.getMainLooper()));
-        return callback;
-    }
-
-    public static void unregisterLiveOutputTracker(Context context, AudioDeviceCallback callback) {
-        if (context == null || callback == null) return;
-        AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        if (am != null) am.unregisterAudioDeviceCallback(callback);
-    }
-
-    public static void updateOutputLabels(Context context, TextView tvDeviceName, TextView tvCodec) {
-        if (tvDeviceName == null || tvCodec == null) return;
-        AudioRouteHelper.RouteInfo info = AudioRouteHelper.getActiveRouteInfo(context);
-        tvDeviceName.setText(info.deviceName);
-        tvCodec.setText(info.codecSubtitle);
     }
 }

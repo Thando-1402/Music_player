@@ -39,7 +39,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -56,7 +55,6 @@ public class FoldersActivity extends AppCompatActivity {
     private TextView textSdStorageTitle, textSdStorageFree;
     private ProgressBar progressStorage, progressSdStorage;
     private TextView textBreadcrumbs, textDirectoriesHeader, textLooseFilesHeader;
-    private MaterialButton btnUpDir, btnScanMedia, btnSortFolders;
     private RecyclerView recyclerFolders, recyclerLooseFiles;
 
     private TextView miniTitle, miniSubtitle;
@@ -123,9 +121,9 @@ public class FoldersActivity extends AppCompatActivity {
         textDirectoriesHeader = findViewById(R.id.text_directories_header);
         textLooseFilesHeader = findViewById(R.id.text_loose_files_header);
 
-        btnUpDir = findViewById(R.id.btn_up_dir);
-        btnScanMedia = findViewById(R.id.btn_scan_media);
-        btnSortFolders = findViewById(R.id.btn_sort_folders);
+        MaterialButton btnUpDir = findViewById(R.id.btn_up_dir);
+        MaterialButton btnScanMedia = findViewById(R.id.btn_scan_media);
+        MaterialButton btnSortFolders = findViewById(R.id.btn_sort_folders);
 
         recyclerFolders = findViewById(R.id.recycler_folders);
         recyclerLooseFiles = findViewById(R.id.recycler_loose_files);
@@ -204,10 +202,7 @@ public class FoldersActivity extends AppCompatActivity {
             });
         }
         if (miniPlayerContainer != null) {
-            miniPlayerContainer.setOnClickListener(v -> {
-                startActivity(new Intent(FoldersActivity.this, NowPlayingActivity.class));
-                overridePendingTransition(R.anim.slide_up_in, 0);
-            });
+            miniPlayerContainer.setOnClickListener(v -> UiAnimationHelper.openNowPlaying(this));
         }
     }
 
@@ -215,21 +210,25 @@ public class FoldersActivity extends AppCompatActivity {
         AuralisTelemetryManager.StorageSnapshot snap = AuralisTelemetryManager.getStorageSnapshot(this);
 
         if (textStorageTitle != null) {
-            textStorageTitle.setText("Internal (" + snap.internalUsedPercent + "%)");
+            textStorageTitle.setText(getString(R.string.storage_internal_pct_fmt, snap.internalUsedPercent));
         }
         if (textStorageFree != null) {
-            textStorageFree.setText(Formatter.formatShortFileSize(this, snap.internalFreeBytes)
-                    + " free / " + Formatter.formatShortFileSize(this, snap.internalTotalBytes));
+            textStorageFree.setText(getString(R.string.storage_free_total_fmt,
+                    Formatter.formatShortFileSize(this, snap.internalFreeBytes),
+                    Formatter.formatShortFileSize(this, snap.internalTotalBytes)));
         }
         if (progressStorage != null) {
             progressStorage.setProgress(snap.internalUsedPercent);
         }
 
         if (snap.hasSdCard) {
-            if (textSdStorageTitle != null) textSdStorageTitle.setText("MicroSD (" + snap.sdUsedPercent + "%)");
+            if (textSdStorageTitle != null) {
+                textSdStorageTitle.setText(getString(R.string.storage_microsd_pct_fmt, snap.sdUsedPercent));
+            }
             if (textSdStorageFree != null) {
-                textSdStorageFree.setText(Formatter.formatShortFileSize(this, snap.sdFreeBytes)
-                        + " free / " + Formatter.formatShortFileSize(this, snap.sdTotalBytes));
+                textSdStorageFree.setText(getString(R.string.storage_free_total_fmt,
+                        Formatter.formatShortFileSize(this, snap.sdFreeBytes),
+                        Formatter.formatShortFileSize(this, snap.sdTotalBytes)));
             }
             if (progressSdStorage != null) progressSdStorage.setProgress(snap.sdUsedPercent);
         } else {
@@ -401,9 +400,9 @@ public class FoldersActivity extends AppCompatActivity {
         }
 
         if (sortByName) {
-            Collections.sort(allFolders, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+            allFolders.sort((a, b) -> a.getName().compareToIgnoreCase(b.getName()));
         } else {
-            Collections.sort(allFolders, (a, b) -> Long.compare(b.getTotalBytes(), a.getTotalBytes()));
+            allFolders.sort((a, b) -> Long.compare(b.getTotalBytes(), a.getTotalBytes()));
         }
 
         renderCurrentDirectoryState();
@@ -413,7 +412,7 @@ public class FoldersActivity extends AppCompatActivity {
         if (selectedFolderPath == null) {
             textBreadcrumbs.setText(R.string.breadcrumbs_default);
             if (textDirectoriesHeader != null) {
-                textDirectoriesHeader.setText("AUDIO DIRECTORIES (" + allFolders.size() + ") • Tap ⋮ or long-press to hide");
+                textDirectoriesHeader.setText(getString(R.string.directories_header_fmt, allFolders.size()));
                 textDirectoriesHeader.setVisibility(View.VISIBLE);
             }
             recyclerFolders.setVisibility(View.VISIBLE);
@@ -442,7 +441,7 @@ public class FoldersActivity extends AppCompatActivity {
             }));
         } else {
             String folderName = new File(selectedFolderPath).getName();
-            textBreadcrumbs.setText("Storage  >  " + folderName);
+            textBreadcrumbs.setText(getString(R.string.breadcrumbs_folder_fmt, folderName));
             if (textDirectoriesHeader != null) {
                 textDirectoriesHeader.setVisibility(View.GONE);
             }
@@ -450,7 +449,7 @@ public class FoldersActivity extends AppCompatActivity {
 
             if (textLooseFilesHeader != null) {
                 textLooseFilesHeader.setVisibility(View.VISIBLE);
-                textLooseFilesHeader.setText("FILES IN " + folderName.toUpperCase(Locale.US));
+                textLooseFilesHeader.setText(getString(R.string.files_in_folder_fmt, folderName.toUpperCase(Locale.US)));
             }
             recyclerLooseFiles.setVisibility(View.VISIBLE);
 

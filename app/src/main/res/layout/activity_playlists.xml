@@ -5,7 +5,6 @@
     android:id="@+id/playlists_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_window"
     android:fitsSystemWindows="true">
 
     <com.google.android.material.appbar.MaterialToolbar

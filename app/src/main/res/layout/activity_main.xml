@@ -6,7 +6,6 @@
     android:id="@+id/main_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_window"
     android:fitsSystemWindows="true">
 
     <com.google.android.material.appbar.MaterialToolbar
@@ -171,35 +170,24 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <LinearLayout
+    <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/empty_state_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:drawablePadding="12dp"
+        android:fontFamily="sans-serif-bold"
         android:gravity="center"
-        android:visibility="gone"
         android:paddingHorizontal="32dp"
-        app:layout_constraintTop_toTopOf="@id/recycler_view_songs"
+        android:text="@string/empty_library_title"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp"
+        android:visibility="gone"
+        app:drawableTint="@color/text_secondary"
+        app:drawableTopCompat="@drawable/ic_music_note_24"
         app:layout_constraintBottom_toBottomOf="@id/recycler_view_songs"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <ImageView
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:contentDescription="@string/cd_empty_library_icon"
-            android:src="@drawable/ic_music_note_24"
-            app:tint="@color/text_secondary" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/empty_library_title"
-            android:textColor="@color/text_primary"
-            android:textSize="15sp"
-            android:fontFamily="sans-serif-bold" />
-    </LinearLayout>
+        app:layout_constraintTop_toTopOf="@id/recycler_view_songs" />
 
     <include
         android:id="@+id/mini_player_main"

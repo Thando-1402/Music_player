@@ -9,8 +9,15 @@ build/
 /captures
 .externalNativeBuild
 .cxx
-LogCat/
-*.logcat
+
+# Firebase local config
+app/google-services.json
+
+# AI Work & Local Diagnostics (Never push to GitHub)
+Ai help/
+Ai help/**
 AI_HANDOFF.md
 AI_handoff.md
-app/google-services.json
+Gemini-reply*.txt
+LogCat/
+*.logcat

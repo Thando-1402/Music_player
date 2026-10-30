@@ -1,6 +1,8 @@
 package com.thando1402.auralis;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.view.MotionEvent;
 import android.view.View;
@@ -141,5 +143,26 @@ public final class UiAnimationHelper {
                 .setInterpolator(DECELERATE)
                 .withLayer()
                 .start();
+    }
+
+    @SuppressWarnings("deprecation")
+    public static void openNowPlaying(Activity host) {
+        if (host == null) return;
+        host.startActivity(new Intent(host, NowPlayingActivity.class));
+        host.overridePendingTransition(R.anim.slide_up_in, 0);
+    }
+
+    @SuppressWarnings("deprecation")
+    public static void closeNowPlaying(Activity host) {
+        if (host == null) return;
+        host.finish();
+        host.overridePendingTransition(0, R.anim.slide_down_out);
+    }
+
+    @SuppressWarnings("deprecation")
+    public static void startInstant(Activity host, Intent intent) {
+        if (host == null || intent == null) return;
+        host.startActivity(intent);
+        host.overridePendingTransition(0, 0);
     }
 }

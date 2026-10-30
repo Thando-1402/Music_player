@@ -39,7 +39,8 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
         FolderItem folder = folders.get(position);
         holder.textName.setText(folder.getName());
         String sizeStr = Formatter.formatShortFileSize(holder.itemView.getContext(), folder.getTotalBytes());
-        holder.textStats.setText(folder.getFileCount() + " audio files • " + sizeStr);
+        holder.textStats.setText(holder.itemView.getContext().getString(
+                R.string.folder_stats_fmt, folder.getFileCount(), sizeStr));
         holder.itemView.setOnClickListener(v -> listener.onFolderClick(folder));
         holder.itemView.setOnLongClickListener(v -> {
             listener.onFolderLongClick(folder);

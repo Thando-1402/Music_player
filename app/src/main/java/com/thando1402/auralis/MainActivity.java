@@ -1,6 +1,7 @@
 package com.thando1402.auralis;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.ContentUris;
 import android.content.Intent;
@@ -41,7 +42,6 @@ import com.google.android.material.imageview.ShapeableImageView;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CancellationException;
@@ -128,13 +128,13 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
                     startActivity(new Intent(MainActivity.this, ProfileSettingsActivity.class));
                     return true;
                 } else if (id == R.id.action_sort_title) {
-                    Collections.sort(displayedList, (a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()));
-                    if (adapter != null) adapter.notifyDataSetChanged();
+                    displayedList.sort((a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()));
+                    refreshAdapterDataset();
                     Toast.makeText(this, R.string.menu_sort_title, Toast.LENGTH_SHORT).show();
                     return true;
                 } else if (id == R.id.action_sort_artist) {
-                    Collections.sort(displayedList, (a, b) -> a.getArtist().compareToIgnoreCase(b.getArtist()));
-                    if (adapter != null) adapter.notifyDataSetChanged();
+                    displayedList.sort((a, b) -> a.getArtist().compareToIgnoreCase(b.getArtist()));
+                    refreshAdapterDataset();
                     Toast.makeText(this, R.string.menu_sort_artist, Toast.LENGTH_SHORT).show();
                     return true;
                 } else if (id == R.id.action_rescan) {
@@ -153,8 +153,8 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
             chipAll.setOnClickListener(v -> {
                 displayedList.clear();
                 displayedList.addAll(songList);
-                Collections.sort(displayedList, (a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()));
-                if (adapter != null) adapter.notifyDataSetChanged();
+                displayedList.sort((a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()));
+                refreshAdapterDataset();
                 updateLibraryStats();
             });
         }
@@ -165,7 +165,7 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
                 List<Song> mix = OpenRouterAiHelper.curateSmartMix(this, songList);
                 displayedList.clear();
                 displayedList.addAll(mix);
-                if (adapter != null) adapter.notifyDataSetChanged();
+                refreshAdapterDataset();
                 updateLibraryStats();
                 onSongClick(0);
                 Toast.makeText(this, "✨ AI Smart Mix curated (" + displayedList.size() + " tracks)", Toast.LENGTH_SHORT).show();
@@ -173,25 +173,21 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
         }
         Chip chipAlbums = findViewById(R.id.chip_albums);
         if (chipAlbums != null) {
-            chipAlbums.setOnClickListener(v -> {
-                startActivity(new Intent(MainActivity.this, PlaylistsActivity.class));
-                overridePendingTransition(0, 0);
-            });
+            chipAlbums.setOnClickListener(v ->
+                    UiAnimationHelper.startInstant(this, new Intent(MainActivity.this, PlaylistsActivity.class)));
         }
         Chip chipArtists = findViewById(R.id.chip_artists);
         if (chipArtists != null) {
             chipArtists.setOnClickListener(v -> {
-                Collections.sort(displayedList, (a, b) -> a.getArtist().compareToIgnoreCase(b.getArtist()));
-                if (adapter != null) adapter.notifyDataSetChanged();
+                displayedList.sort((a, b) -> a.getArtist().compareToIgnoreCase(b.getArtist()));
+                refreshAdapterDataset();
                 Toast.makeText(this, "Grouped by Artist", Toast.LENGTH_SHORT).show();
             });
         }
         Chip chipFolders = findViewById(R.id.chip_folders);
         if (chipFolders != null) {
-            chipFolders.setOnClickListener(v -> {
-                startActivity(new Intent(MainActivity.this, FoldersActivity.class));
-                overridePendingTransition(0, 0);
-            });
+            chipFolders.setOnClickListener(v ->
+                    UiAnimationHelper.startInstant(this, new Intent(MainActivity.this, FoldersActivity.class)));
         }
 
         View btnShuffleAll = findViewById(R.id.btn_shuffle_all_library);
@@ -303,8 +299,15 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
                 }
             }
         }
-        if (adapter != null) adapter.notifyDataSetChanged();
+        refreshAdapterDataset();
         updateLibraryStats();
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    private void refreshAdapterDataset() {
+        if (adapter != null) {
+            adapter.notifyDataSetChanged();
+        }
     }
 
     private void checkPermissionAndScan() {
@@ -427,7 +430,7 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
                     recyclerSongs.setAdapter(adapter);
                     animateRecyclerViewEntrance();
                 } else {
-                    adapter.notifyDataSetChanged();
+                    refreshAdapterDataset();
                 }
 
                 updateLibraryStats();
@@ -439,13 +442,14 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
         if (recyclerSongs == null || recyclerSongs.getAdapter() == null) return;
         LayoutAnimationController controller = AnimationUtils.loadLayoutAnimation(this, R.anim.layout_anim_fall_down);
         recyclerSongs.setLayoutAnimation(controller);
-        recyclerSongs.getAdapter().notifyDataSetChanged();
+        refreshAdapterDataset();
         recyclerSongs.scheduleLayoutAnimation();
     }
 
     private void updateLibraryStats() {
         if (textLibraryStats != null) {
-            textLibraryStats.setText(getString(R.string.library_stats_fmt, displayedList.size()));
+            int count = displayedList.size();
+            textLibraryStats.setText(getResources().getQuantityString(R.plurals.library_stats_plural, count, count));
         }
         Chip chipAll = findViewById(R.id.chip_all_songs);
         if (chipAll != null) {
@@ -529,10 +533,7 @@ public class MainActivity extends AppCompatActivity implements SongAdapter.OnSon
             });
         }
         if (miniPlayerContainer != null) {
-            miniPlayerContainer.setOnClickListener(v -> {
-                startActivity(new Intent(MainActivity.this, NowPlayingActivity.class));
-                overridePendingTransition(R.anim.slide_up_in, 0);
-            });
+            miniPlayerContainer.setOnClickListener(v -> UiAnimationHelper.openNowPlaying(this));
         }
     }
 

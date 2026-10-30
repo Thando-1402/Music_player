@@ -11,7 +11,6 @@ import android.os.StatFs;
 import android.text.format.Formatter;
 
 import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
 import androidx.work.BackoffPolicy;
 import androidx.work.Constraints;
 import androidx.work.ExistingWorkPolicy;
@@ -67,7 +66,7 @@ public class AuralisTelemetryManager {
                 final Thread.UncaughtExceptionHandler defaultHandler = Thread.getDefaultUncaughtExceptionHandler();
 
                 Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
-                    saveReportLocally(appContext, thread != null ? thread.getName() : "unknown", true, "UNCAUGHT_CRASH", throwable);
+                    saveReportLocally(appContext, thread.getName(), true, "UNCAUGHT_CRASH", throwable);
                     scheduleCrashReportSync(appContext);
                     if (defaultHandler != null) {
                         defaultHandler.uncaughtException(thread, throwable);
@@ -390,7 +389,7 @@ public class AuralisTelemetryManager {
         snap.internalUsedPercent = snap.internalTotalBytes > 0
                 ? (int) ((snap.internalUsedBytes * 100L) / snap.internalTotalBytes) : 0;
 
-        File[] extDirs = ContextCompat.getExternalFilesDirs(context, null);
+        File[] extDirs = context.getExternalFilesDirs(null);
         if (extDirs.length > 1 && extDirs[1] != null
                 && Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState(extDirs[1]))) {
             snap.hasSdCard = true;

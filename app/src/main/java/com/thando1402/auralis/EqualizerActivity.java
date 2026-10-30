@@ -257,10 +257,7 @@ public class EqualizerActivity extends AppCompatActivity {
             });
         }
         if (miniPlayerContainer != null) {
-            miniPlayerContainer.setOnClickListener(v -> {
-                startActivity(new Intent(this, NowPlayingActivity.class));
-                overridePendingTransition(R.anim.slide_up_in, 0);
-            });
+            miniPlayerContainer.setOnClickListener(v -> UiAnimationHelper.openNowPlaying(this));
         }
     }
 

@@ -159,7 +159,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         return songs.size();
     }
 
-    static class SongViewHolder extends RecyclerView.ViewHolder {
+    public static class SongViewHolder extends RecyclerView.ViewHolder {
         TextView textTitle, textArtist, textCodec;
         ShapeableImageView imageArt;
         EqualizerBarsView indicator;

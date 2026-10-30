@@ -58,19 +58,19 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.perf)
     implementation(libs.work.runtime)
-    implementation("com.google.firebase:firebase-analytics:22.1.2")
+    implementation(libs.firebase.analytics)
     implementation(libs.material)
-    
-    implementation("com.google.firebase:firebase-ai:18.1.0")
-    debugImplementation("com.google.firebase:firebase-appcheck-debug:20.0.0")
-    implementation("com.google.guava:guava:31.0.1-android")
-    implementation("org.reactivestreams:reactive-streams:1.0.4")
-    implementation("androidx.palette:palette:1.0.0")
+
+    implementation(libs.firebase.ai)
+    debugImplementation(libs.firebase.appcheck.debug)
+    implementation(libs.guava)
+    implementation(libs.reactive.streams)
+    implementation(libs.palette)
 
     // AndroidX Media3 for playback
-    implementation("androidx.media3:media3-exoplayer:1.11.1")
-    implementation("androidx.media3:media3-session:1.11.1")
-    implementation("androidx.media3:media3-common:1.11.1")
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.session)
+    implementation(libs.media3.common)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)

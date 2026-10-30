@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -21,6 +22,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatImageButton;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.core.content.ContextCompat;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
@@ -221,7 +223,8 @@ public class PlaylistsActivity extends AppCompatActivity {
                 allSongs.clear();
                 allSongs.addAll(loaded);
                 if (tvFavCount != null) {
-                    tvFavCount.setText(getString(R.string.favourites_count_fmt, finalFavCount));
+                    tvFavCount.setText(getResources().getQuantityString(
+                            R.plurals.favourites_count_plural, finalFavCount, finalFavCount));
                 }
             });
         });
@@ -276,9 +279,21 @@ public class PlaylistsActivity extends AppCompatActivity {
         }
     }
 
+    private void deleteCustomPlaylist(String name) {
+        try {
+            SharedPreferences prefs = getSharedPreferences(PREFS_PLAYLISTS, MODE_PRIVATE);
+            JSONObject root = new JSONObject(prefs.getString(KEY_JSON, "{}"));
+            root.remove(name);
+            prefs.edit().putString(KEY_JSON, root.toString()).apply();
+            renderCustomPlaylists();
+        } catch (Exception ignored) {
+        }
+    }
+
     private void renderCustomPlaylists() {
         if (containerCustomPlaylists == null) return;
         containerCustomPlaylists.removeAllViews();
+        LayoutInflater inflater = LayoutInflater.from(this);
         try {
             SharedPreferences prefs = getSharedPreferences(PREFS_PLAYLISTS, MODE_PRIVATE);
             JSONObject root = new JSONObject(prefs.getString(KEY_JSON, "{}"));
@@ -288,35 +303,49 @@ public class PlaylistsActivity extends AppCompatActivity {
                 JSONArray arr = root.optJSONArray(name);
                 int count = arr != null ? arr.length() : 0;
 
-                LinearLayout card = new LinearLayout(this);
-                card.setOrientation(LinearLayout.VERTICAL);
-                card.setBackgroundResource(R.drawable.bg_rounded_card_12dp);
-                int pad = (int) (14 * getResources().getDisplayMetrics().density);
-                card.setPadding(pad, pad, pad, pad);
+                View row = inflater.inflate(R.layout.item_playlist, containerCustomPlaylists, false);
+                row.setBackgroundResource(R.drawable.bg_rounded_card_12dp);
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
                 lp.bottomMargin = (int) (8 * getResources().getDisplayMetrics().density);
-                card.setLayoutParams(lp);
+                row.setLayoutParams(lp);
 
-                TextView title = new TextView(this);
-                title.setText(name);
-                title.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
-                title.setTextSize(15f);
+                TextView title = row.findViewById(R.id.text_playlist_name);
+                TextView sub = row.findViewById(R.id.text_playlist_count);
+                View btnOverflow = row.findViewById(R.id.btn_playlist_overflow);
 
-                TextView sub = new TextView(this);
-                sub.setText(count + " tracks • Tap to play • Long-press to export .M3U");
-                sub.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
-                sub.setTextSize(12f);
+                if (title != null) title.setText(name);
+                if (sub != null) sub.setText(getString(R.string.playlist_custom_subtitle_fmt, count));
 
-                card.addView(title);
-                card.addView(sub);
-
-                card.setOnClickListener(v -> playCustomPlaylist(name, arr));
-                card.setOnLongClickListener(v -> {
+                row.setOnClickListener(v -> playCustomPlaylist(name, arr));
+                row.setOnLongClickListener(v -> {
                     exportPlaylistM3u(name, arr);
                     return true;
                 });
-                containerCustomPlaylists.addView(card);
+                if (btnOverflow != null) {
+                    btnOverflow.setOnClickListener(v -> {
+                        PopupMenu popup = new PopupMenu(this, v);
+                        popup.getMenu().add(0, 1, 0, R.string.menu_play_now);
+                        popup.getMenu().add(0, 2, 1, "Export .M3U");
+                        popup.getMenu().add(0, 3, 2, "Delete Playlist");
+                        popup.setOnMenuItemClickListener(item -> {
+                            int id = item.getItemId();
+                            if (id == 1) {
+                                playCustomPlaylist(name, arr);
+                                return true;
+                            } else if (id == 2) {
+                                exportPlaylistM3u(name, arr);
+                                return true;
+                            } else if (id == 3) {
+                                deleteCustomPlaylist(name);
+                                return true;
+                            }
+                            return false;
+                        });
+                        popup.show();
+                    });
+                }
+                containerCustomPlaylists.addView(row);
             }
         } catch (Exception ignored) {
         }
@@ -387,10 +416,7 @@ public class PlaylistsActivity extends AppCompatActivity {
             });
         }
         if (miniPlayerContainer != null) {
-            miniPlayerContainer.setOnClickListener(v -> {
-                startActivity(new Intent(this, NowPlayingActivity.class));
-                overridePendingTransition(R.anim.slide_up_in, 0);
-            });
+            miniPlayerContainer.setOnClickListener(v -> UiAnimationHelper.openNowPlaying(this));
         }
     }
 

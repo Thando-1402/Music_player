@@ -10,7 +10,6 @@ import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 
 import org.json.JSONObject;
 
@@ -21,6 +20,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 public class SongMetadataManager {
 
@@ -43,7 +43,7 @@ public class SongMetadataManager {
     }
 
     public static File getStorageDirectory(Context context) {
-        File[] externalDirs = ContextCompat.getExternalFilesDirs(context, null);
+        File[] externalDirs = context.getExternalFilesDirs(null);
         if (isPreferSdCard(context) && externalDirs.length > 1 && externalDirs[1] != null) {
             if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState(externalDirs[1]))) {
                 return externalDirs[1];
@@ -145,7 +145,7 @@ public class SongMetadataManager {
     private static File getStableMetadataFile(Context context) {
         File stableFile = new File(context.getFilesDir(), JSON_FILE_NAME);
         if (!stableFile.exists()) {
-            File[] externalDirs = ContextCompat.getExternalFilesDirs(context, null);
+            File[] externalDirs = context.getExternalFilesDirs(null);
             for (File dir : externalDirs) {
                 if (dir != null) {
                     File legacyFile = new File(dir, JSON_FILE_NAME);
@@ -158,13 +158,6 @@ public class SongMetadataManager {
             }
         }
         return stableFile;
-    }
-
-    /**
-     * Applies saved metadata overrides without reading heavy fallback lyrics during bulk library scans.
-     */
-    public static void applySavedEdits(Context context, Song song) {
-        applySavedEdits(context, song, false);
     }
 
     /**
@@ -578,7 +571,7 @@ public class SongMetadataManager {
 
             // Check FLAC/Vorbis comment "LYRICS=" or "UNSYNCEDLYRICS="
             String rawAscii = new String(header, 0, totalRead, StandardCharsets.ISO_8859_1);
-            int vorbisIdx = rawAscii.toUpperCase().indexOf("LYRICS=");
+            int vorbisIdx = rawAscii.toUpperCase(Locale.ROOT).indexOf("LYRICS=");
             if (vorbisIdx >= 4) {
                 int lenPos = vorbisIdx - 4;
                 if (vorbisIdx >= 11 && rawAscii.regionMatches(true, vorbisIdx - 8, "UNSYNCED", 0, 8)) {

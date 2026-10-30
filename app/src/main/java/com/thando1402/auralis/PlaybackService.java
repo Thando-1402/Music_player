@@ -45,6 +45,7 @@ public class PlaybackService extends MediaSessionService {
     private Equalizer equalizer;
     private BassBoost bassBoost;
     private Virtualizer virtualizer;
+    private int boundEffectSessionId = 0;
     private SharedPreferences eqPrefs;
 
     private ExecutorService artworkExecutor;
@@ -130,7 +131,8 @@ public class PlaybackService extends MediaSessionService {
 
     @SuppressWarnings("deprecation")
     private void attachAudioEffects(int sessionId) {
-        if (sessionId <= 0) return;
+        if (sessionId <= 0 || sessionId == boundEffectSessionId) return;
+        boundEffectSessionId = sessionId;
         releaseAudioEffects();
         try {
             equalizer = new Equalizer(0, sessionId);
@@ -255,6 +257,7 @@ public class PlaybackService extends MediaSessionService {
     @Override
     public void onDestroy() {
         activeAudioSessionId = 0;
+        boundEffectSessionId = 0;
         if (eqPrefs != null) {
             eqPrefs.unregisterOnSharedPreferenceChangeListener(dspPrefListener);
         }

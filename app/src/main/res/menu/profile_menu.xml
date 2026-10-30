@@ -2,11 +2,6 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/action_openrouter_key"
-        android:icon="@drawable/ic_auto_awesome_24"
-        android:title="@string/menu_openrouter_key"
-        app:showAsAction="ifRoom" />
-    <item
         android:id="@+id/action_reset_settings"
         android:title="@string/menu_reset_dsp"
         app:showAsAction="never" />

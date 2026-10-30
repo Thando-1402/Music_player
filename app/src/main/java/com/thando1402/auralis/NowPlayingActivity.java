@@ -58,10 +58,10 @@ public class NowPlayingActivity extends AppCompatActivity {
     private ExecutorService ioExecutor;
 
     private TextView tvTitle, tvArtist, tvTimeCurrent, tvTimeRemaining;
-    private TextView tvDeviceName, tvDeviceCodec, badgeDspStatus, badgeLosslessMaster, badgeFlacSpec;
+    private TextView tvDeviceName, tvDeviceCodec, badgeDspStatus, badgeLosslessMaster, badgeFlacSpec, badgeAutoDetected;
     private TextView tvLyricActive, tvLyricNext, tvScrolledLyrics;
-    private View lyricsScrollContainer, lyricsLiveCard;
-    private ImageView ivArt, ivRouteIcon;
+    private View lyricsScrollContainer;
+    private ImageView ivArt, ivBackdropArt, ivRouteIcon;
     private FloatingActionButton btnPlayPause;
     private MaterialButton btnPrev, btnNext, btnFav, btnShuffle, btnRepeat, btnLyricsSheet, btnEqProfile;
     private SeekBar seekBar;
@@ -118,11 +118,9 @@ public class NowPlayingActivity extends AppCompatActivity {
         public void onIsPlayingChanged(boolean isPlaying) {
             syncPlayPauseState();
             UiAnimationHelper.animateAlbumArtPlayState(ivArt, isPlaying);
+            progressHandler.removeCallbacks(progressRunnable);
             if (isPlaying) {
-                progressHandler.removeCallbacks(progressRunnable);
                 progressHandler.post(progressRunnable);
-            } else {
-                progressHandler.removeCallbacks(progressRunnable);
             }
         }
 
@@ -156,30 +154,31 @@ public class NowPlayingActivity extends AppCompatActivity {
         badgeDspStatus = findViewById(R.id.badge_dsp_balanced);
         badgeLosslessMaster = findViewById(R.id.badge_lossless_master);
         badgeFlacSpec = findViewById(R.id.badge_flac_spec);
+        badgeAutoDetected = findViewById(R.id.badge_auto_detected);
         tvLyricActive = findViewById(R.id.tv_lyric_active_line);
         tvLyricNext = findViewById(R.id.tv_lyric_next_line);
         tvScrolledLyrics = findViewById(R.id.tv_scrolled_lyrics);
         lyricsScrollContainer = findViewById(R.id.lyrics_scroll_container);
-        lyricsLiveCard = findViewById(R.id.lyrics_live_card);
+        View lyricsLiveCard = findViewById(R.id.lyrics_live_card);
         ivArt = findViewById(R.id.iv_hero_album_art);
+        ivBackdropArt = findViewById(R.id.iv_fullscreen_backdrop_art);
         seekBar = findViewById(R.id.slider_playback_progress);
 
         tvTitle.setShadowLayer(8f, 0f, 2f, Color.BLACK);
         tvArtist.setShadowLayer(6f, 0f, 2f, Color.BLACK);
 
         View btnCollapse = findViewById(R.id.btn_collapse);
-        btnCollapse.setOnClickListener(v -> {
-            finish();
-            overridePendingTransition(0, R.anim.slide_down_out);
-        });
+        btnCollapse.setOnClickListener(v -> UiAnimationHelper.closeNowPlaying(this));
 
         View btnQueue = findViewById(R.id.btn_queue);
-        btnQueue.setOnClickListener(v ->
-                startActivity(new Intent(NowPlayingActivity.this, PlaylistsActivity.class)));
+        if (btnQueue != null) {
+            btnQueue.setOnClickListener(v ->
+                    startActivity(new Intent(NowPlayingActivity.this, PlaylistsActivity.class)));
+        }
 
-        View btnMoreOptions = findViewById(R.id.btn_more_options);
-        if (btnMoreOptions != null) {
-            btnMoreOptions.setOnClickListener(this::showOverflowMenu);
+        View btnOverflow = findViewById(R.id.btn_now_playing_overflow);
+        if (btnOverflow != null) {
+            btnOverflow.setOnClickListener(this::showOverflowMenu);
         }
 
         btnPlayPause = findViewById(R.id.btn_play_pause_fab);
@@ -657,10 +656,12 @@ public class NowPlayingActivity extends AppCompatActivity {
 
                 if (artBitmap != null) {
                     UiAnimationHelper.crossfadeBitmap(ivArt, artBitmap);
+                    if (ivBackdropArt != null) ivBackdropArt.setImageBitmap(artBitmap);
                     applyThemeColor(PlaybackStateHelper.ensureReadableAccent(
                             accent, ContextCompat.getColor(NowPlayingActivity.this, R.color.accent_blue)));
                 } else {
                     ivArt.setImageResource(R.drawable.ic_album_placeholder_large);
+                    if (ivBackdropArt != null) ivBackdropArt.setImageResource(R.drawable.ic_album_placeholder_large);
                     resetPalette();
                 }
 
@@ -814,7 +815,7 @@ public class NowPlayingActivity extends AppCompatActivity {
             }
 
             if (candidateIdx < 0) {
-                tvLyricActive.setText("♪ …");
+                tvLyricActive.setText(R.string.lyric_intro_ellipsis);
                 tvLyricActive.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
                 tvLyricNext.setText(parsedLrcLines.get(0).text);
                 lastSyncedLrcIndex = -1;
@@ -832,7 +833,7 @@ public class NowPlayingActivity extends AppCompatActivity {
 
             if (candidateIdx != lastSyncedLrcIndex) {
                 lastSyncedLrcIndex = candidateIdx;
-                tvLyricActive.setText("♪ " + parsedLrcLines.get(candidateIdx).text);
+                tvLyricActive.setText(getString(R.string.lyric_active_line_fmt, parsedLrcLines.get(candidateIdx).text));
                 tvLyricActive.setTextColor(currentAccentColor);
                 if (candidateIdx + 1 < parsedLrcLines.size()) {
                     tvLyricNext.setText(parsedLrcLines.get(candidateIdx + 1).text);
@@ -848,7 +849,7 @@ public class NowPlayingActivity extends AppCompatActivity {
             idx = Math.max(0, Math.min(plainLyricLines.size() - 1, idx));
             if (idx != lastSyncedLrcIndex) {
                 lastSyncedLrcIndex = idx;
-                tvLyricActive.setText("♪ " + plainLyricLines.get(idx));
+                tvLyricActive.setText(getString(R.string.lyric_active_line_fmt, plainLyricLines.get(idx)));
                 tvLyricActive.setTextColor(currentAccentColor);
                 if (idx + 1 < plainLyricLines.size()) {
                     tvLyricNext.setText(plainLyricLines.get(idx + 1));
@@ -876,6 +877,8 @@ public class NowPlayingActivity extends AppCompatActivity {
         if (btnLyricsSheet != null) btnLyricsSheet.setIconTint(accentList);
         if (badgeDspStatus != null) badgeDspStatus.setTextColor(color);
         if (badgeFlacSpec != null) badgeFlacSpec.setTextColor(color);
+        if (badgeAutoDetected != null) badgeAutoDetected.setTextColor(color);
+        if (ivRouteIcon != null) ivRouteIcon.setImageTintList(accentList);
 
         if (badgeLosslessMaster != null) {
             badgeLosslessMaster.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
@@ -908,7 +911,7 @@ public class NowPlayingActivity extends AppCompatActivity {
 
     private void syncPlayPauseState() {
         if (mediaController == null || btnPlayPause == null) return;
-        btnPlayPause.setImageResource(mediaController.isPlaying() ? R.drawable.ic_pause_24 : R.drawable.ic_play_arrow_24);
+        btnPlayPause.setImageResource(mediaController.isPlaying() ? R.drawable.ic_pause_24 : R.drawable.ic_play_arrow_36);
     }
 
     private void syncShuffleState(int activeColor) {
@@ -920,6 +923,7 @@ public class NowPlayingActivity extends AppCompatActivity {
     private void syncRepeatState(int activeColor) {
         if (mediaController == null || btnRepeat == null) return;
         int mode = mediaController.getRepeatMode();
+        btnRepeat.setIconResource(mode == Player.REPEAT_MODE_ONE ? R.drawable.ic_repeat_one_24 : R.drawable.ic_repeat_24);
         int tint = mode != Player.REPEAT_MODE_OFF ? activeColor : ContextCompat.getColor(this, R.color.text_secondary);
         btnRepeat.setIconTint(ColorStateList.valueOf(tint));
     }

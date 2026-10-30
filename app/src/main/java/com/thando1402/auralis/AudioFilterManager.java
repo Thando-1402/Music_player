@@ -2,6 +2,7 @@ package com.thando1402.auralis;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Environment;
 
 import java.util.HashSet;
 import java.util.Locale;
@@ -86,10 +87,6 @@ public class AudioFilterManager {
                 .edit().putBoolean(KEY_EXCLUDE_PODCASTS, enabled).apply();
     }
 
-    public static boolean shouldExcludeTrack(Context context, String title, String fullPath) {
-        return shouldExcludeTrack(context, title, fullPath, 30000L);
-    }
-
     public static boolean shouldExcludeTrack(Context context, String title, String fullPath, long durationMs) {
         String safeTitle = title != null ? title.trim() : "";
         String safePath = fullPath != null ? fullPath : "";
@@ -134,8 +131,9 @@ public class AudioFilterManager {
 
     public static boolean isMicroSdPath(String path) {
         if (path == null || path.isEmpty()) return false;
-        // Internal storage on Android is /storage/emulated/0 or /data
-        if (path.startsWith("/storage/emulated") || path.startsWith("/data") || path.startsWith("/sdcard")) {
+        String primaryExtPath = Environment.getExternalStorageDirectory().getPath();
+        // Internal storage on Android is /storage/emulated/0, primary external dir, or /data
+        if (path.startsWith("/storage/emulated") || path.startsWith("/data") || path.startsWith(primaryExtPath)) {
             return false;
         }
         // Removable SD cards mount under /storage/XXXX-XXXX

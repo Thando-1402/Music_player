@@ -35,7 +35,7 @@ public class EditTrackActivity extends AppCompatActivity {
     private String songArtist;
 
     private EditText editTitle, editArtist, editAlbum, editNum, editYearGenre;
-    private TextView snippetLrc, textFileSpecs;
+    private TextView snippetLrc;
     private ShapeableImageView coverPreview;
 
     private Uri pendingCoverUri = null;
@@ -91,7 +91,7 @@ public class EditTrackActivity extends AppCompatActivity {
         editNum = findViewById(R.id.input_track_num);
         editYearGenre = findViewById(R.id.input_track_year_genre);
         snippetLrc = findViewById(R.id.snippet_lrc);
-        textFileSpecs = findViewById(R.id.text_track_file_specs);
+        TextView textFileSpecs = findViewById(R.id.text_track_file_specs);
         coverPreview = findViewById(R.id.edit_track_artwork);
 
         if (songUri != null) {
@@ -129,7 +129,7 @@ public class EditTrackActivity extends AppCompatActivity {
             if (textFileSpecs != null) {
                 File syncedDir = SongMetadataManager.getSyncedLyricsDir(this);
                 File origDir = SongMetadataManager.getBackupLyricsDir(this);
-                textFileSpecs.setText("Synced: " + syncedDir.getName() + " • Backup: " + origDir.getName());
+                textFileSpecs.setText(getString(R.string.edit_track_storage_fmt, syncedDir.getName(), origDir.getName()));
             }
         }
 
@@ -285,6 +285,7 @@ public class EditTrackActivity extends AppCompatActivity {
             if (a == null || a.isEmpty()) a = "Unknown Artist";
 
             Song updated = new Song(t, a, songUri, 0);
+            ArtworkColorHelper.invalidateCacheForSong(songUri.toString());
             SongMetadataManager.saveSongEditFull(this, updated, t, a, alb, trkNum, yrGenre, pendingCoverUri, l);
             Toast.makeText(this, "Saved to Lyrics_Synced/ (Original Backup preserved)", Toast.LENGTH_SHORT).show();
         }

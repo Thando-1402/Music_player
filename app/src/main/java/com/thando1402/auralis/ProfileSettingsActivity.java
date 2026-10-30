@@ -13,7 +13,6 @@ import android.os.Looper;
 import android.provider.MediaStore;
 import android.text.format.Formatter;
 import android.view.View;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -111,10 +110,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
         if (toolbar != null) {
             toolbar.setOnMenuItemClickListener(item -> {
                 int id = item.getItemId();
-                if (id == R.id.action_openrouter_key) {
-                    showOpenRouterApiKeyDialog();
-                    return true;
-                } else if (id == R.id.action_reset_settings) {
+                if (id == R.id.action_reset_settings) {
                     resetDspDefaults();
                     return true;
                 } else if (id == R.id.action_about) {
@@ -133,12 +129,6 @@ public class ProfileSettingsActivity extends AppCompatActivity {
         if (btnOpenSetup != null) {
             btnOpenSetup.setOnClickListener(openProfileSetup);
             UiAnimationHelper.attachSpringTouch(btnOpenSetup);
-        }
-
-        View btnConfigureAi = findViewById(R.id.btn_configure_openrouter);
-        if (btnConfigureAi != null) {
-            btnConfigureAi.setOnClickListener(v -> showOpenRouterApiKeyDialog());
-            UiAnimationHelper.attachSpringTouch(btnConfigureAi);
         }
 
         View cardDac = findViewById(R.id.card_profile_dac);
@@ -247,21 +237,6 @@ public class ProfileSettingsActivity extends AppCompatActivity {
         });
     }
 
-    private void showOpenRouterApiKeyDialog() {
-        EditText keyInput = new EditText(this);
-        keyInput.setHint("sk-or-v1-...");
-        keyInput.setText(OpenRouterAiHelper.getApiKey(this));
-        new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.menu_openrouter_key)
-                .setView(keyInput)
-                .setPositiveButton(R.string.btn_save, (d, w) -> {
-                    OpenRouterAiHelper.saveApiKey(this, keyInput.getText() != null ? keyInput.getText().toString() : "");
-                    Toast.makeText(this, "OpenRouter AI key saved", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
     private void resetDspDefaults() {
         SharedPreferences prefs = getSharedPreferences(OpenRouterAiHelper.PREFS_NAME, MODE_PRIVATE);
         prefs.edit()
@@ -326,10 +301,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
             });
         }
         if (miniPlayerContainer != null) {
-            miniPlayerContainer.setOnClickListener(v -> {
-                startActivity(new Intent(this, NowPlayingActivity.class));
-                overridePendingTransition(R.anim.slide_up_in, 0);
-            });
+            miniPlayerContainer.setOnClickListener(v -> UiAnimationHelper.openNowPlaying(this));
         }
     }
 

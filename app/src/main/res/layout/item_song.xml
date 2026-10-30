@@ -8,7 +8,8 @@
     android:layout_height="72dp"
     android:background="?attr/selectableItemBackground"
     android:paddingStart="16dp"
-    android:paddingEnd="4dp">
+    android:paddingEnd="4dp"
+    tools:ignore="Overdraw">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/art_badge_container"

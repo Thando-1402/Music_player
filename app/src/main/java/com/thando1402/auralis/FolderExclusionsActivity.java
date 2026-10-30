@@ -126,6 +126,6 @@ public class FolderExclusionsActivity extends AppCompatActivity {
         if (AudioFilterManager.isHideWhatsAppEnabled(this)) activeRules++;
         if (AudioFilterManager.isExcludePodcastsEnabled(this)) activeRules++;
         int customFolders = AudioFilterManager.getExcludedFolders(this).size();
-        summaryExcludedCount.setText("🛡 " + activeRules + " Active Filter Rules • " + customFolders + " Custom Hidden Folders");
+        summaryExcludedCount.setText(getString(R.string.exclusions_summary_fmt, activeRules, customFolders));
     }
 }

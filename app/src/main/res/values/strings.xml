@@ -3,7 +3,6 @@
 
     <!-- Mini Player -->
     <string name="no_music_playing">No music playing</string>
-    <string name="tap_to_select_track">Tap a song in your library to start listening</string>
     <string name="tap_to_select_track_short">Tap to select a track</string>
     <string name="cd_album_artwork">Album artwork</string>
     <string name="cd_play_pause">Play or pause</string>
@@ -28,6 +27,8 @@
     <string name="no_lyrics_loaded">No lyrics saved for this track.</string>
     <string name="lyrics_hint_active">♪ Tap LYRICS below to view or load .lrc lyrics</string>
     <string name="lyrics_hint_next">Tap ⋮ menu above to edit track or calibrate sync</string>
+    <string name="lyric_intro_ellipsis">♪ …</string>
+    <string name="lyric_active_line_fmt">♪ %1$s</string>
     <string name="cd_collapse_player">Minimize player</string>
     <string name="cd_open_queue">Open playlists and queue</string>
     <string name="cd_more_options">Track options</string>
@@ -51,6 +52,7 @@
     <!-- List Items -->
     <string name="playlist_name_placeholder">Playlist Name</string>
     <string name="playlist_count_default">0 tracks • 0:00</string>
+    <string name="playlist_custom_subtitle_fmt">%1$d tracks • Tap to play • Long-press to export .M3U</string>
     <string name="cd_playlist_options">Playlist options</string>
     <string name="song_title_placeholder">Track Title</string>
     <string name="song_codec_badge">AUDIO</string>
@@ -60,6 +62,7 @@
     <string name="cd_song_options">Song options</string>
     <string name="folder_name_placeholder">Music Folder</string>
     <string name="folder_stats_default">0 files • 0 B</string>
+    <string name="folder_stats_fmt">%1$d audio files • %2$s</string>
     <string name="cd_folder_icon">Audio folder</string>
     <string name="cd_folder_options">Folder options</string>
 
@@ -100,11 +103,13 @@
     <string name="chip_playlists">Playlists</string>
     <string name="scanning_local_library">Scanning Local Library…</string>
     <string name="storage_permission_required">Storage Permission Required</string>
-    <string name="library_stats_fmt">All Local Tracks (%1$d files)</string>
+    <plurals name="library_stats_plural">
+        <item quantity="one">All Local Tracks (%1$d file)</item>
+        <item quantity="other">All Local Tracks (%1$d files)</item>
+    </plurals>
     <string name="chip_all_tracks_fmt">All Tracks (%1$d)</string>
     <string name="btn_shuffle">Shuffle</string>
     <string name="empty_library_title">No Local Audio Found</string>
-    <string name="cd_empty_library_icon">No music icon</string>
 
     <!-- Playlists -->
     <string name="playlists_toolbar_title">Playlists &amp; Curator</string>
@@ -112,7 +117,10 @@
     <string name="smart_curator_header">SMART CURATOR &amp; AUTO-MIXES</string>
     <string name="favourites_master_title">Favourites Master</string>
     <string name="favourites_count_default">0 starred tracks • Tap to play</string>
-    <string name="favourites_count_fmt">%1$d starred tracks • Tap to play</string>
+    <plurals name="favourites_count_plural">
+        <item quantity="one">%1$d starred track • Tap to play</item>
+        <item quantity="other">%1$d starred tracks • Tap to play</item>
+    </plurals>
     <string name="ai_discovery_title">✨ AI Smart Discovery Queue</string>
     <string name="ai_discovery_sub">Blends your Favourites with 25 deep-cut local tracks</string>
     <string name="late_night_title">Late-Night Extended Sessions</string>
@@ -121,18 +129,24 @@
 
     <!-- Folders & Exclusions -->
     <string name="storage_internal_short">Internal</string>
+    <string name="storage_internal_pct_fmt">Internal (%1$d%%)</string>
     <string name="storage_free_default">0 B free / 0 B</string>
+    <string name="storage_free_total_fmt">%1$s free / %2$s</string>
     <string name="storage_microsd_short">MicroSD</string>
+    <string name="storage_microsd_pct_fmt">MicroSD (%1$d%%)</string>
     <string name="storage_not_mounted">Not Mounted</string>
     <string name="scan_index_filters_title">Scan &amp; Index Filters</string>
     <string name="scan_index_filters_sub">WhatsApp &amp; short clips shielded • Tap to configure</string>
     <string name="btn_up">Up</string>
     <string name="breadcrumbs_default">All Storage  &gt;  Audio Directories</string>
+    <string name="breadcrumbs_folder_fmt">Storage  &gt;  %1$s</string>
     <string name="btn_scan_media">Scan Media</string>
     <string name="btn_sort_name">Name</string>
     <string name="btn_sort_size">Size</string>
     <string name="directories_header_default">AUDIO DIRECTORIES</string>
+    <string name="directories_header_fmt">AUDIO DIRECTORIES (%1$d) • Tap ⋮ or long-press to hide</string>
     <string name="loose_files_header_default">AUDIO FILES</string>
+    <string name="files_in_folder_fmt">FILES IN %1$s</string>
     <string name="exclusions_toolbar_title">Folder Scan &amp; Exclusions</string>
     <string name="exclusions_toolbar_subtitle">Manage Library Indexing</string>
     <string name="cd_refresh_scan">Refresh scan</string>
@@ -141,6 +155,7 @@
     <string name="badge_isolation_active">● ISOLATION ACTIVE</string>
     <string name="library_scan_filters_desc">Excluded directories are completely omitted from library indexing and shuffle sweeps.</string>
     <string name="active_filters_summary_default">🛡 Active Filters Shielding Non-Music Assets</string>
+    <string name="exclusions_summary_fmt">🛡 %1$d Active Filter Rules • %2$d Custom Hidden Folders</string>
     <string name="automated_filters_header">AUTOMATED FILTERS</string>
     <string name="filter_hidden_title">Ignore Hidden Folders (.*)</string>
     <string name="filter_hidden_sub">Bypasses system caches and hidden directories</string>
@@ -163,7 +178,7 @@
     <string name="btn_defaults">Defaults</string>
     <string name="btn_apply_and_rescan">Apply &amp; Rescan</string>
 
-    <!-- Edit Track & Dialog -->
+    <!-- Edit Track -->
     <string name="edit_track_toolbar_title">Edit Track Details</string>
     <string name="btn_save">Save</string>
     <string name="btn_change_art">Change Art</string>
@@ -171,6 +186,7 @@
     <string name="btn_gallery">Gallery</string>
     <string name="cd_remove_art">Remove custom cover art</string>
     <string name="local_audio_file">Local Audio File</string>
+    <string name="edit_track_storage_fmt">Synced: %1$s • Backup: %2$s</string>
     <string name="primary_id3_header">PRIMARY ID3 TAGS (ID3v2.4)</string>
     <string name="btn_ai_clean_tags">✨ AI Auto-Clean Title &amp; Artist</string>
     <string name="hint_track_title">Track Title</string>
@@ -204,7 +220,6 @@
     <string name="bit_perfect_title">Bit-Perfect Direct DAC</string>
     <string name="bit_perfect_sub">Bypasses system mixer for bit-perfect output</string>
     <string name="btn_edit_profile_auth">Account &amp; Profile Setup</string>
-    <string name="btn_configure_openrouter">Configure OpenRouter AI Key</string>
     <string name="btn_run_diagnostics">Run DAC &amp; Crash Telemetry Diagnostics</string>
 
     <!-- Profile Setup & Firebase Auth Screen -->
@@ -233,7 +248,6 @@
     <string name="nav_eq">EQ</string>
     <string name="menu_play_now">Play Now</string>
     <string name="menu_edit_tags">Edit ID3 Tags / Artwork</string>
-    <string name="menu_openrouter_key">OpenRouter AI Key</string>
     <string name="menu_reset_dsp">Reset DSP Engine to Defaults</string>
     <string name="menu_about_auralis">About Auralis Lossless</string>
 </resources>
