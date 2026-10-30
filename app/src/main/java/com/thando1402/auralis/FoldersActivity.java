@@ -19,6 +19,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatImageButton;
 import androidx.core.content.ContextCompat;
@@ -30,6 +31,7 @@ import androidx.media3.session.SessionToken;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.imageview.ShapeableImageView;
@@ -40,7 +42,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -56,8 +60,9 @@ public class FoldersActivity extends AppCompatActivity {
     private RecyclerView recyclerFolders, recyclerLooseFiles;
 
     private TextView miniTitle, miniSubtitle;
-    private AppCompatImageButton btnPrev, btnPlayPause, btnNext;
+    private AppCompatImageButton btnPlayPause, btnNext;
     private ShapeableImageView miniArt;
+    private View miniPlayerContainer;
 
     private MediaController mediaController;
     private ListenableFuture<MediaController> controllerFuture;
@@ -65,8 +70,9 @@ public class FoldersActivity extends AppCompatActivity {
     private final Map<String, List<Song>> folderSongsMap = new LinkedHashMap<>();
     private final Map<String, Long> folderBytesMap = new LinkedHashMap<>();
     private final List<FolderItem> allFolders = new ArrayList<>();
-    private String selectedFolderPath = null; // null = root overview of all audio folders
+    private String selectedFolderPath = null;
     private boolean sortByName = true;
+    private boolean initialScanTriggered = false;
     private long totalAudioBytes = 0;
 
     private final Player.Listener playerListener = new Player.Listener() {
@@ -76,7 +82,7 @@ public class FoldersActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onMediaMetadataChanged(MediaMetadata mediaMetadata) {
+        public void onMediaMetadataChanged(@NonNull MediaMetadata mediaMetadata) {
             syncMiniPlayerUI();
         }
 
@@ -88,12 +94,22 @@ public class FoldersActivity extends AppCompatActivity {
         }
     };
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         AuralisTelemetryManager.init(this);
         setContentView(R.layout.activity_folders);
+
+        MaterialToolbar toolbar = findViewById(R.id.toolbar_folders);
+        if (toolbar != null) {
+            toolbar.setOnMenuItemClickListener(item -> {
+                if (item.getItemId() == R.id.action_open_profile) {
+                    startActivity(new Intent(this, ProfileSettingsActivity.class));
+                    return true;
+                }
+                return false;
+            });
+        }
 
         textStorageTitle = findViewById(R.id.text_storage_title);
         textStorageFree = findViewById(R.id.text_storage_free);
@@ -116,13 +132,12 @@ public class FoldersActivity extends AppCompatActivity {
         recyclerFolders.setLayoutManager(new LinearLayoutManager(this));
         recyclerLooseFiles.setLayoutManager(new LinearLayoutManager(this));
 
-        // Bind Mini-Player
         miniTitle = findViewById(R.id.mini_title);
         miniSubtitle = findViewById(R.id.mini_subtitle);
-        btnPrev = findViewById(R.id.mini_prev);
         btnPlayPause = findViewById(R.id.mini_play_pause);
         btnNext = findViewById(R.id.mini_next);
         miniArt = findViewById(R.id.mini_track_art);
+        miniPlayerContainer = findViewById(R.id.mini_player_folders);
 
         setupMiniPlayerControls();
 
@@ -152,29 +167,25 @@ public class FoldersActivity extends AppCompatActivity {
 
         btnSortFolders.setOnClickListener(v -> {
             sortByName = !sortByName;
-            btnSortFolders.setText(sortByName ? "Name" : "Size");
+            btnSortFolders.setText(sortByName ? R.string.btn_sort_name : R.string.btn_sort_size);
             sortAndRender();
         });
 
         btnScanMedia.setOnClickListener(v -> {
             Toast.makeText(this, "Rescanning storage & MicroSD...", Toast.LENGTH_SHORT).show();
-            
             List<String> pathsToScan = new ArrayList<>(folderSongsMap.keySet());
             pathsToScan.add(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC).getAbsolutePath());
-            
-            if (pathsToScan.isEmpty()) {
-                scanStorageAndAudioFolders();
-            } else {
-                MediaScannerConnection.scanFile(this,
-                        pathsToScan.toArray(new String[0]),
-                        null,
-                        (path, uri) -> runOnUiThread(this::scanStorageAndAudioFolders));
-            }
+
+            MediaScannerConnection.scanFile(this,
+                    pathsToScan.toArray(new String[0]),
+                    null,
+                    (path, uri) -> runOnUiThread(this::scanStorageAndAudioFolders));
         });
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav_folders);
         NavigationHelper.setupBottomNavigation(this, bottomNav, R.id.nav_folders);
 
+        initialScanTriggered = true;
         scanStorageAndAudioFolders();
     }
 
@@ -187,19 +198,13 @@ public class FoldersActivity extends AppCompatActivity {
                 }
             });
         }
-        if (btnPrev != null) {
-            btnPrev.setOnClickListener(v -> {
-                if (mediaController != null) mediaController.seekToPrevious();
-            });
-        }
         if (btnNext != null) {
             btnNext.setOnClickListener(v -> {
                 if (mediaController != null) mediaController.seekToNext();
             });
         }
-        View miniContainer = findViewById(R.id.mini_player_folders);
-        if (miniContainer != null) {
-            miniContainer.setOnClickListener(v -> {
+        if (miniPlayerContainer != null) {
+            miniPlayerContainer.setOnClickListener(v -> {
                 startActivity(new Intent(FoldersActivity.this, NowPlayingActivity.class));
                 overridePendingTransition(R.anim.slide_up_in, 0);
             });
@@ -208,22 +213,28 @@ public class FoldersActivity extends AppCompatActivity {
 
     private void updateStorageCardUI() {
         AuralisTelemetryManager.StorageSnapshot snap = AuralisTelemetryManager.getStorageSnapshot(this);
-        
-        String apkSizeStr = AuralisTelemetryManager.getApkSizeFormatted(this);
-        long ramMb = AuralisTelemetryManager.getRamUsageMb();
-        String audioSizeStr = Formatter.formatShortFileSize(this, totalAudioBytes);
 
-        if (textStorageTitle != null) textStorageTitle.setText("Phone Internal (" + snap.internalUsedPercent + "% used)");
-        if (textStorageFree != null) textStorageFree.setText(Formatter.formatShortFileSize(this, snap.internalFreeBytes) + " free / " + Formatter.formatShortFileSize(this, snap.internalTotalBytes));
-        if (progressStorage != null) progressStorage.setProgress(snap.internalUsedPercent);
+        if (textStorageTitle != null) {
+            textStorageTitle.setText("Internal (" + snap.internalUsedPercent + "%)");
+        }
+        if (textStorageFree != null) {
+            textStorageFree.setText(Formatter.formatShortFileSize(this, snap.internalFreeBytes)
+                    + " free / " + Formatter.formatShortFileSize(this, snap.internalTotalBytes));
+        }
+        if (progressStorage != null) {
+            progressStorage.setProgress(snap.internalUsedPercent);
+        }
 
         if (snap.hasSdCard) {
-            if (textSdStorageTitle != null) textSdStorageTitle.setText("MicroSD Card (" + snap.sdUsedPercent + "% used)");
-            if (textSdStorageFree != null) textSdStorageFree.setText(Formatter.formatShortFileSize(this, snap.sdFreeBytes) + " free / " + Formatter.formatShortFileSize(this, snap.sdTotalBytes));
+            if (textSdStorageTitle != null) textSdStorageTitle.setText("MicroSD (" + snap.sdUsedPercent + "%)");
+            if (textSdStorageFree != null) {
+                textSdStorageFree.setText(Formatter.formatShortFileSize(this, snap.sdFreeBytes)
+                        + " free / " + Formatter.formatShortFileSize(this, snap.sdTotalBytes));
+            }
             if (progressSdStorage != null) progressSdStorage.setProgress(snap.sdUsedPercent);
         } else {
-            if (textSdStorageTitle != null) textSdStorageTitle.setText("MicroSD Card");
-            if (textSdStorageFree != null) textSdStorageFree.setText("No MicroSD Detected");
+            if (textSdStorageTitle != null) textSdStorageTitle.setText(R.string.storage_microsd_short);
+            if (textSdStorageFree != null) textSdStorageFree.setText(R.string.storage_not_mounted);
             if (progressSdStorage != null) progressSdStorage.setProgress(0);
         }
     }
@@ -232,48 +243,35 @@ public class FoldersActivity extends AppCompatActivity {
         AuralisTelemetryManager.StorageSnapshot snap = AuralisTelemetryManager.getStorageSnapshot(this);
         File crashFile = AuralisTelemetryManager.getLastCrashLogFile(this);
         boolean hasCrashLog = crashFile.exists() && crashFile.length() > 0;
+        int queuedOfflineReports = AuralisTelemetryManager.getQueuedCrashReportCount(this);
 
-        StringBuilder msg = new StringBuilder();
-        msg.append("• Phone Free Space: ").append(Formatter.formatShortFileSize(this, snap.internalFreeBytes))
-           .append(" / ").append(Formatter.formatShortFileSize(this, snap.internalTotalBytes)).append("\n");
-        msg.append("• MicroSD Card: ").append(snap.hasSdCard ? Formatter.formatShortFileSize(this, snap.sdFreeBytes) + " free / " + Formatter.formatShortFileSize(this, snap.sdTotalBytes) : "Not Detected").append("\n");
-        msg.append("• Indexed Audio Footprint: ").append(Formatter.formatShortFileSize(this, totalAudioBytes)).append("\n");
-        msg.append("• Auralis APK Binary Size: ").append(AuralisTelemetryManager.getApkSizeFormatted(this)).append("\n");
-        msg.append("• Active RAM Heap Usage: ").append(AuralisTelemetryManager.getRamUsageMb()).append(" MB / 45 MB Cap\n");
-        msg.append("• Edits & Cover Storage Path:\n  ").append(SongMetadataManager.getStorageDirectory(this).getAbsolutePath()).append("\n");
-        msg.append("• Crash Telemetry: ").append(AuralisTelemetryManager.isFirebaseLinked()
-                ? "Firebase Crashlytics + Local SD Log"
-                : "Local SD Crash Guard Active").append("\n");
-        msg.append("• Recorded Crashes: ").append(hasCrashLog ? "Yes (Saved to log)" : "0 crashes recorded");
+        String msg = "• Phone Free Space: " + Formatter.formatShortFileSize(this, snap.internalFreeBytes)
+                + " / " + Formatter.formatShortFileSize(this, snap.internalTotalBytes) + "\n"
+                + "• MicroSD Card: " + (snap.hasSdCard
+                ? Formatter.formatShortFileSize(this, snap.sdFreeBytes) + " free / " + Formatter.formatShortFileSize(this, snap.sdTotalBytes)
+                : "Not Detected") + "\n"
+                + "• Indexed Audio Footprint: " + Formatter.formatShortFileSize(this, totalAudioBytes) + "\n"
+                + "• Auralis APK Binary Size: " + AuralisTelemetryManager.getApkSizeFormatted(this) + "\n"
+                + "• Active RAM Heap Usage: " + AuralisTelemetryManager.getRamUsageMb() + " MB\n"
+                + "• Lyrics Backup Folder:\n  " + SongMetadataManager.getDedicatedLyricsBackupDir(this).getAbsolutePath() + "\n"
+                + "• Crash Store-and-Forward: " + (AuralisTelemetryManager.isFirebaseLinked()
+                ? "WorkManager -> Firebase Crashlytics"
+                : "Local JSON Queue Active") + "\n"
+                + "• Pending Offline Crash Reports: " + queuedOfflineReports
+                + (hasCrashLog ? " (Log history saved)" : " (0 crashes)");
 
         boolean preferSd = SongMetadataManager.isPreferSdCard(this);
 
         new AlertDialog.Builder(this)
                 .setTitle("Storage & Crash Telemetry")
-                .setMessage(msg.toString())
+                .setMessage(msg)
                 .setPositiveButton(preferSd ? "Switch Cache to Internal" : "Switch Cache to MicroSD", (d, w) -> {
                     SongMetadataManager.setPreferSdCard(this, !preferSd);
                     updateStorageCardUI();
                     Toast.makeText(this, "Storage preference updated", Toast.LENGTH_SHORT).show();
                 })
-                .setNeutralButton("Filter Settings", (d, w) -> {
-                    boolean currentlyHiding = AudioFilterManager.isHideWhatsAppEnabled(this);
-                    new AlertDialog.Builder(this)
-                            .setTitle("Filter Settings")
-                            .setItems(new String[]{
-                                    currentlyHiding ? "Show WhatsApp Audio" : "Hide WhatsApp Audio",
-                                    "Restore Hidden Folders"
-                            }, (dialog, which) -> {
-                                if (which == 0) {
-                                    AudioFilterManager.setHideWhatsAppEnabled(this, !currentlyHiding);
-                                    scanStorageAndAudioFolders();
-                                } else if (which == 1) {
-                                    AudioFilterManager.clearExcludedFolders(this);
-                                    scanStorageAndAudioFolders();
-                                    Toast.makeText(this, "Hidden folders restored", Toast.LENGTH_SHORT).show();
-                                }
-                            }).show();
-                })
+                .setNeutralButton("Filter Settings", (d, w) ->
+                        startActivity(new Intent(this, FolderExclusionsActivity.class)))
                 .setNegativeButton("Close", null)
                 .show();
     }
@@ -287,19 +285,28 @@ public class FoldersActivity extends AppCompatActivity {
             Map<String, Long> groupedBytes = new LinkedHashMap<>();
             long audioBytesSum = 0;
 
-            Uri collection = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ?
-                    MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL) :
-                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+            Uri collection = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                    ? MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+                    : MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
 
-            String[] projection = new String[]{
-                    MediaStore.Audio.Media._ID,
-                    MediaStore.Audio.Media.TITLE,
-                    MediaStore.Audio.Media.ARTIST,
-                    MediaStore.Audio.Media.DURATION,
-                    MediaStore.Audio.Media.DATA,
-                    MediaStore.Audio.Media.SIZE,
-                    MediaStore.MediaColumns.VOLUME_NAME
-            };
+            String[] projection = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                    ? new String[]{
+                        MediaStore.Audio.Media._ID,
+                        MediaStore.Audio.Media.TITLE,
+                        MediaStore.Audio.Media.ARTIST,
+                        MediaStore.Audio.Media.DURATION,
+                        MediaStore.Audio.Media.DATA,
+                        MediaStore.Audio.Media.SIZE,
+                        MediaStore.MediaColumns.VOLUME_NAME
+                    }
+                    : new String[]{
+                        MediaStore.Audio.Media._ID,
+                        MediaStore.Audio.Media.TITLE,
+                        MediaStore.Audio.Media.ARTIST,
+                        MediaStore.Audio.Media.DURATION,
+                        MediaStore.Audio.Media.DATA,
+                        MediaStore.Audio.Media.SIZE
+                    };
 
             String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
             String sortOrder = MediaStore.Audio.Media.TITLE + " ASC";
@@ -313,7 +320,8 @@ public class FoldersActivity extends AppCompatActivity {
                     int durCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
                     int dataCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
                     int sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE);
-                    int volumeCol = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? cursor.getColumnIndex(MediaStore.MediaColumns.VOLUME_NAME) : -1;
+                    int volumeCol = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                            ? cursor.getColumnIndex(MediaStore.MediaColumns.VOLUME_NAME) : -1;
 
                     while (cursor.moveToNext()) {
                         long id = cursor.getLong(idCol);
@@ -322,11 +330,13 @@ public class FoldersActivity extends AppCompatActivity {
                         long duration = cursor.getLong(durCol);
                         String fullPath = cursor.getString(dataCol);
                         long fileSize = cursor.getLong(sizeCol);
-                        
-                        if (AudioFilterManager.shouldExcludeTrack(FoldersActivity.this, title, fullPath)) continue;
+
+                        if (AudioFilterManager.shouldExcludeTrack(getApplicationContext(), title, fullPath, duration)) {
+                            continue;
+                        }
 
                         audioBytesSum += Math.max(0, fileSize);
-                        
+
                         Uri contentUri;
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && volumeCol != -1) {
                             String volumeName = cursor.getString(volumeCol);
@@ -341,12 +351,12 @@ public class FoldersActivity extends AppCompatActivity {
                             contentUri = ContentUris.withAppendedId(
                                     MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
                         }
-                        
+
                         if (title == null || title.isEmpty()) title = "Unknown Track";
                         if (artist == null || artist.isEmpty()) artist = "Unknown Artist";
 
                         Song song = new Song(title, artist, contentUri, duration);
-                        SongMetadataManager.applySavedEdits(FoldersActivity.this, song);
+                        SongMetadataManager.applySavedEdits(getApplicationContext(), song, false);
 
                         String parentPath = "/storage/Music";
                         if (fullPath != null) {
@@ -355,11 +365,11 @@ public class FoldersActivity extends AppCompatActivity {
                         }
 
                         groupedSongs.computeIfAbsent(parentPath, k -> new ArrayList<>()).add(song);
-                        groupedBytes.put(parentPath, groupedBytes.getOrDefault(parentPath, 0L) + Math.max(0, fileSize));
+                        Long prevBytes = groupedBytes.get(parentPath);
+                        groupedBytes.put(parentPath, (prevBytes != null ? prevBytes : 0L) + Math.max(0, fileSize));
                     }
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (Exception ignored) {
             }
 
             final long finalAudioBytes = audioBytesSum;
@@ -385,7 +395,8 @@ public class FoldersActivity extends AppCompatActivity {
             if (rawName.isEmpty()) rawName = path;
 
             String badge = AudioFilterManager.isMicroSdPath(path) ? "[MicroSD] " : "[Phone] ";
-            long bytes = folderBytesMap.getOrDefault(path, 0L);
+            Long rawBytes = folderBytesMap.get(path);
+            long bytes = rawBytes != null ? rawBytes : 0L;
             allFolders.add(new FolderItem(badge + rawName, path, entry.getValue().size(), bytes));
         }
 
@@ -400,16 +411,15 @@ public class FoldersActivity extends AppCompatActivity {
 
     private void renderCurrentDirectoryState() {
         if (selectedFolderPath == null) {
-            // Root view: show all audio directories, and show all tracks below
-            textBreadcrumbs.setText("All Storage  >  Audio Directories");
+            textBreadcrumbs.setText(R.string.breadcrumbs_default);
             if (textDirectoriesHeader != null) {
-                textDirectoriesHeader.setText("AUDIO DIRECTORIES (" + allFolders.size() + ") • Long-press to hide");
+                textDirectoriesHeader.setText("AUDIO DIRECTORIES (" + allFolders.size() + ") • Tap ⋮ or long-press to hide");
                 textDirectoriesHeader.setVisibility(View.VISIBLE);
             }
             recyclerFolders.setVisibility(View.VISIBLE);
             if (textLooseFilesHeader != null) textLooseFilesHeader.setVisibility(View.GONE);
             recyclerLooseFiles.setVisibility(View.GONE);
-            
+
             recyclerFolders.setAdapter(new FolderAdapter(allFolders, new FolderAdapter.OnFolderClickListener() {
                 @Override
                 public void onFolderClick(FolderItem folder) {
@@ -421,7 +431,7 @@ public class FoldersActivity extends AppCompatActivity {
                 public void onFolderLongClick(FolderItem folder) {
                     new AlertDialog.Builder(FoldersActivity.this)
                             .setTitle("Hide Folder")
-                            .setMessage("Hide this folder from Auralis Library & Folders?")
+                            .setMessage("Hide \"" + folder.getName() + "\" from Auralis Library & Folders?")
                             .setPositiveButton("Hide", (dialog, which) -> {
                                 AudioFilterManager.addExcludedFolder(FoldersActivity.this, folder.getPath());
                                 scanStorageAndAudioFolders();
@@ -431,7 +441,6 @@ public class FoldersActivity extends AppCompatActivity {
                 }
             }));
         } else {
-            // Inside a specific folder
             String folderName = new File(selectedFolderPath).getName();
             textBreadcrumbs.setText("Storage  >  " + folderName);
             if (textDirectoriesHeader != null) {
@@ -441,10 +450,10 @@ public class FoldersActivity extends AppCompatActivity {
 
             if (textLooseFilesHeader != null) {
                 textLooseFilesHeader.setVisibility(View.VISIBLE);
-                textLooseFilesHeader.setText("FILES IN " + folderName.toUpperCase());
+                textLooseFilesHeader.setText("FILES IN " + folderName.toUpperCase(Locale.US));
             }
             recyclerLooseFiles.setVisibility(View.VISIBLE);
-            
+
             List<Song> folderSongs = folderSongsMap.getOrDefault(selectedFolderPath, new ArrayList<>());
             bindSongsList(folderSongs);
         }
@@ -454,27 +463,18 @@ public class FoldersActivity extends AppCompatActivity {
         SongAdapter adapter = new SongAdapter(songs, new SongAdapter.OnSongClickListener() {
             @Override
             public void onSongClick(int position) {
-                if (mediaController != null) {
-                    mediaController.clearMediaItems();
-                    for (Song s : songs) {
-                        MediaMetadata.Builder meta = new MediaMetadata.Builder()
-                                .setTitle(s.getTitle())
-                                .setArtist(s.getArtist());
-                        if (s.getCustomCoverUri() != null) meta.setArtworkUri(s.getCustomCoverUri());
-                        mediaController.addMediaItem(new MediaItem.Builder()
-                                .setUri(s.getUri())
-                                .setMediaId(s.getUri().toString())
-                                .setMediaMetadata(meta.build())
-                                .build());
-                    }
-                    mediaController.seekToDefaultPosition(position);
+                if (mediaController != null && position >= 0 && position < songs.size()) {
+                    List<MediaItem> items = PlaybackStateHelper.buildAdaptiveQueue(songs);
+                    mediaController.setMediaItems(items, position, 0);
                     mediaController.prepare();
                     mediaController.play();
+                    syncMiniPlayerUI();
                 }
             }
 
             @Override
             public void onSongOptionsClick(int position) {
+                if (position < 0 || position >= songs.size()) return;
                 Song s = songs.get(position);
                 Intent intent = new Intent(FoldersActivity.this, EditTrackActivity.class);
                 intent.putExtra("EXTRA_SONG_URI", s.getUri().toString());
@@ -489,7 +489,11 @@ public class FoldersActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        scanStorageAndAudioFolders();
+        if (initialScanTriggered) {
+            initialScanTriggered = false;
+        } else {
+            scanStorageAndAudioFolders();
+        }
     }
 
     @Override
@@ -506,8 +510,7 @@ public class FoldersActivity extends AppCompatActivity {
                 mediaController = future.get();
                 mediaController.addListener(playerListener);
                 syncMiniPlayerUI();
-            } catch (ExecutionException | InterruptedException | java.util.concurrent.CancellationException e) {
-                e.printStackTrace();
+            } catch (ExecutionException | InterruptedException | CancellationException ignored) {
             }
         }, ContextCompat.getMainExecutor(this));
     }
@@ -532,23 +535,14 @@ public class FoldersActivity extends AppCompatActivity {
     }
 
     private void syncMiniPlayerUI() {
-        if (mediaController == null) return;
-        MediaItem currentItem = mediaController.getCurrentMediaItem();
-        if (currentItem != null && currentItem.mediaMetadata != null) {
-            CharSequence title = currentItem.mediaMetadata.title;
-            CharSequence artist = currentItem.mediaMetadata.artist;
-            if (miniTitle != null && title != null && title.length() > 0) miniTitle.setText(title);
-            if (miniSubtitle != null && artist != null && artist.length() > 0) miniSubtitle.setText(artist);
-            if (miniArt != null) {
-                if (currentItem.mediaMetadata.artworkUri != null) {
-                    miniArt.setImageURI(currentItem.mediaMetadata.artworkUri);
-                } else {
-                    miniArt.setImageResource(R.drawable.ic_album_placeholder);
-                }
-            }
-        }
-        if (btnPlayPause != null) {
-            btnPlayPause.setImageResource(mediaController.isPlaying() ? R.drawable.ic_pause_24 : R.drawable.ic_play_arrow_24);
-        }
+        PlaybackStateHelper.syncMiniPlayerView(
+                this,
+                mediaController,
+                miniPlayerContainer,
+                miniTitle,
+                miniSubtitle,
+                miniArt,
+                btnPlayPause
+        );
     }
 }

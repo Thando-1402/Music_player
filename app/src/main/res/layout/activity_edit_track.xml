@@ -15,7 +15,7 @@
         android:background="@color/bg_window"
         app:navigationIcon="@drawable/ic_close_24"
         app:navigationIconTint="@color/text_primary"
-        app:title="Edit Track Details"
+        app:title="@string/edit_track_toolbar_title"
         app:titleTextColor="@color/text_primary"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -27,7 +27,7 @@
         android:layout_width="wrap_content"
         android:layout_height="36dp"
         android:layout_marginEnd="16dp"
-        android:text="Save"
+        android:text="@string/btn_save"
         android:textSize="12sp"
         android:textColor="@color/on_accent_blue"
         app:backgroundTint="@color/accent_blue"
@@ -63,6 +63,7 @@
                     android:id="@+id/edit_track_artwork"
                     android:layout_width="140dp"
                     android:layout_height="140dp"
+                    android:contentDescription="@string/cd_album_artwork"
                     android:scaleType="centerCrop"
                     android:src="@drawable/ic_album_placeholder_large"
                     app:shapeAppearanceOverlay="@style/ShapeAppearance.Rounded12dp"
@@ -75,7 +76,7 @@
                     style="@style/Widget.Material3.Button.TonalButton"
                     android:layout_width="wrap_content"
                     android:layout_height="36dp"
-                    android:text="Change Art"
+                    android:text="@string/btn_change_art"
                     android:textSize="11sp"
                     android:textColor="@color/text_primary"
                     app:icon="@drawable/ic_photo_camera_24"
@@ -102,7 +103,7 @@
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:text="Extract"
+                        android:text="@string/btn_extract"
                         android:textSize="11sp"
                         app:icon="@drawable/ic_sync_24"
                         app:iconSize="13dp"
@@ -117,7 +118,7 @@
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:layout_marginStart="8dp"
-                        android:text="Gallery"
+                        android:text="@string/btn_gallery"
                         android:textSize="11sp"
                         app:icon="@drawable/ic_auto_awesome_24"
                         app:iconSize="13dp"
@@ -133,7 +134,7 @@
                         android:background="@drawable/bg_rounded_card_12dp"
                         android:src="@drawable/ic_close_24"
                         app:tint="#FF5252"
-                        android:contentDescription="Remove Art" />
+                        android:contentDescription="@string/cd_remove_art" />
                 </LinearLayout>
 
                 <TextView
@@ -141,7 +142,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:text="Local Audio File"
+                    android:text="@string/local_audio_file"
                     android:textColor="@color/text_secondary"
                     android:textSize="11sp"
                     android:fontFamily="monospace"
@@ -154,7 +155,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:layout_marginBottom="8dp"
-                android:text="PRIMARY ID3 TAGS (ID3v2.4)"
+                android:text="@string/primary_id3_header"
                 android:textColor="@color/accent_blue"
                 android:textSize="11sp"
                 android:fontFamily="sans-serif-bold"
@@ -166,7 +167,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="38dp"
                 android:layout_marginBottom="10dp"
-                android:text="✨ AI Auto-Clean Title &amp; Artist"
+                android:text="@string/btn_ai_clean_tags"
                 android:textSize="12sp"
                 android:textColor="@color/accent_blue"
                 app:icon="@drawable/ic_auto_awesome_24"
@@ -180,7 +181,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
-                android:hint="Track Title"
+                android:hint="@string/hint_track_title"
                 app:boxStrokeColor="@color/accent_blue"
                 app:boxBackgroundColor="@color/surface_card">
                 <com.google.android.material.textfield.TextInputEditText
@@ -196,7 +197,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
-                android:hint="Artist"
+                android:hint="@string/hint_artist"
                 app:boxStrokeColor="@color/accent_blue"
                 app:boxBackgroundColor="@color/surface_card">
                 <com.google.android.material.textfield.TextInputEditText
@@ -212,7 +213,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
-                android:hint="Album"
+                android:hint="@string/hint_album"
                 app:boxStrokeColor="@color/accent_blue"
                 app:boxBackgroundColor="@color/surface_card">
                 <com.google.android.material.textfield.TextInputEditText
@@ -226,6 +227,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:baselineAligned="false"
                 android:orientation="horizontal"
                 android:layout_marginBottom="10dp">
 
@@ -235,7 +237,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginEnd="6dp"
-                    android:hint="Track #"
+                    android:hint="@string/hint_track_num"
                     app:boxBackgroundColor="@color/surface_card">
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/input_track_num"
@@ -251,7 +253,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginStart="6dp"
-                    android:hint="Year / Genre"
+                    android:hint="@string/hint_year_genre"
                     app:boxBackgroundColor="@color/surface_card">
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/input_track_year_genre"
@@ -273,7 +275,7 @@
                     android:id="@+id/label_lrc"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Synchronized LRC Lyrics"
+                    android:text="@string/label_synced_lrc"
                     android:textColor="@color/text_primary"
                     android:textSize="14sp"
                     android:fontFamily="sans-serif-bold"
@@ -285,9 +287,9 @@
                     android:id="@+id/badge_lrc_synced"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="LOCAL"
+                    android:text="@string/badge_local"
                     android:textColor="@color/accent_blue"
-                    android:textSize="10sp"
+                    android:textSize="11sp"
                     android:fontFamily="sans-serif-bold"
                     android:background="@color/surface_container_high"
                     android:paddingHorizontal="6dp"
@@ -300,7 +302,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="No lyrics saved yet. Tap below to paste .lrc or text lyrics."
+                    android:text="@string/snippet_lrc_empty"
                     android:textColor="@color/accent_blue"
                     android:textSize="11sp"
                     android:fontFamily="monospace"
@@ -313,7 +315,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="38dp"
                     android:layout_marginTop="12dp"
-                    android:text="Edit / Paste Lyrics (.lrc)"
+                    android:text="@string/btn_edit_paste_lyrics"
                     android:textSize="12sp"
                     android:textColor="@color/text_primary"
                     app:icon="@drawable/ic_queue_music_24"
@@ -339,7 +341,7 @@
             style="@style/Widget.Material3.Button"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:text="Save Changes"
+            android:text="@string/btn_save_changes"
             android:textSize="14sp"
             android:fontFamily="sans-serif-bold"
             android:textColor="@color/on_accent_blue"

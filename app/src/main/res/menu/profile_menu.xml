@@ -4,14 +4,14 @@
     <item
         android:id="@+id/action_openrouter_key"
         android:icon="@drawable/ic_auto_awesome_24"
-        android:title="OpenRouter AI Key"
+        android:title="@string/menu_openrouter_key"
         app:showAsAction="ifRoom" />
     <item
         android:id="@+id/action_reset_settings"
-        android:title="Reset DSP Engine to Defaults"
+        android:title="@string/menu_reset_dsp"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_about"
-        android:title="About Auralis Lossless"
+        android:title="@string/menu_about_auralis"
         app:showAsAction="never" />
 </menu>

@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Build;
+import android.util.LruCache;
 import android.util.Size;
 
 import androidx.annotation.ColorInt;
@@ -15,30 +16,75 @@ import androidx.core.graphics.ColorUtils;
 import androidx.palette.graphics.Palette;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.InputStream;
 
 public final class ArtworkColorHelper {
 
+    private static final LruCache<String, Integer> ACCENT_CACHE = new LruCache<>(120);
+
+    // Bounded 2 MB RGB_565 thumbnail cache so scrolling library lists on Nokia 1.4 stays 60fps & OOM-free
+    private static final LruCache<String, Bitmap> THUMB_CACHE = new LruCache<>(2 * 1024 * 1024) {
+        @Override
+        protected int sizeOf(String key, Bitmap value) {
+            return value != null ? value.getAllocationByteCount() : 1;
+        }
+    };
+
     private ArtworkColorHelper() {}
+
+    public static void invalidateCache(@Nullable String cacheKey) {
+        if (cacheKey == null || cacheKey.isEmpty()) return;
+        ACCENT_CACHE.remove(cacheKey);
+        THUMB_CACHE.remove(cacheKey);
+    }
+
+    @Nullable
+    public static Bitmap getCachedThumbnail(@Nullable String cacheKey) {
+        if (cacheKey == null || cacheKey.isEmpty()) return null;
+        Bitmap cached = THUMB_CACHE.get(cacheKey);
+        return (cached != null && !cached.isRecycled()) ? cached : null;
+    }
+
+    @Nullable
+    public static Bitmap loadThumbnailCached(Context context, @Nullable String cacheKey, @Nullable Uri artworkUri, @Nullable Uri audioUri, int reqSize) {
+        Bitmap existing = getCachedThumbnail(cacheKey);
+        if (existing != null) return existing;
+        Bitmap loaded = loadArtworkBitmap(context, artworkUri, audioUri, reqSize);
+        if (loaded != null && cacheKey != null && !cacheKey.isEmpty()) {
+            THUMB_CACHE.put(cacheKey, loaded);
+        }
+        return loaded;
+    }
 
     /**
      * Loads album art reliably on Android 10/11+ (including Nokia 1.4) using:
-     * 1. ContentResolver.loadThumbnail (if API >= 29)
-     * 2. ContentResolver.openInputStream (downsampled)
-     * 3. MediaMetadataRetriever.getEmbeddedPicture() from the audio file URI
+     * 1. Custom cover file / artworkUri (ContentResolver.loadThumbnail or downsampled stream)
+     * 2. MediaMetadataRetriever.getEmbeddedPicture() from the audio file URI (MP3 ID3 APIC / FLAC / M4A)
+     * 3. MediaStore per-song /albumart fallback & direct audioUri thumbnail
      */
     @Nullable
     public static Bitmap loadArtworkBitmap(Context context, @Nullable Uri artworkUri, @Nullable Uri audioUri, int reqSize) {
         if (context == null) return null;
 
-        // Tier 1 & 2: Try artworkUri
+        // Tier 1: Try custom or explicit artworkUri
         Bitmap bmp = decodeUri(context, artworkUri, reqSize);
         if (bmp != null) return bmp;
 
-        // Tier 3: Fallback to embedded ID3/FLAC picture from audioUri
+        // Tier 2: Embedded ID3 APIC / FLAC / M4A picture from audioUri
         if (audioUri != null) {
             bmp = extractEmbeddedPicture(context, audioUri, reqSize);
             if (bmp != null) return bmp;
+
+            // Tier 3: MediaStore per-song albumart child path & direct audioUri thumbnail
+            try {
+                Uri albumArtPath = Uri.withAppendedPath(audioUri, "albumart");
+                if (!albumArtPath.equals(artworkUri)) {
+                    bmp = decodeUri(context, albumArtPath, reqSize);
+                    if (bmp != null) return bmp;
+                }
+            } catch (Exception ignored) {
+            }
             bmp = decodeUri(context, audioUri, reqSize);
         }
         return bmp;
@@ -47,6 +93,14 @@ public final class ArtworkColorHelper {
     @Nullable
     private static Bitmap decodeUri(Context context, @Nullable Uri uri, int reqSize) {
         if (uri == null) return null;
+
+        if ("file".equalsIgnoreCase(uri.getScheme()) && uri.getPath() != null) {
+            File f = new File(uri.getPath());
+            if (f.exists()) {
+                return decodeSampledFile(f.getAbsolutePath(), reqSize);
+            }
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             try {
                 return context.getContentResolver().loadThumbnail(uri, new Size(reqSize, reqSize), null);
@@ -79,6 +133,27 @@ public final class ArtworkColorHelper {
     }
 
     @Nullable
+    private static Bitmap decodeSampledFile(String path, int reqSize) {
+        try {
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(path, bounds);
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
+
+            int sampleSize = 1;
+            while ((bounds.outWidth / sampleSize) > reqSize || (bounds.outHeight / sampleSize) > reqSize) {
+                sampleSize *= 2;
+            }
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inSampleSize = sampleSize;
+            opts.inPreferredConfig = Bitmap.Config.RGB_565;
+            return BitmapFactory.decodeFile(path, opts);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Nullable
     private static Bitmap extractEmbeddedPicture(Context context, Uri audioUri, int reqSize) {
         MediaMetadataRetriever mmr = new MediaMetadataRetriever();
         try {
@@ -106,6 +181,22 @@ public final class ArtworkColorHelper {
             }
         }
         return null;
+    }
+
+    @ColorInt
+    public static int resolveAccentColor(@Nullable String cacheKey, @Nullable Bitmap bitmap, Context context) {
+        int fallback = ContextCompat.getColor(context, R.color.accent_blue);
+        if (cacheKey != null && !cacheKey.isEmpty()) {
+            Integer cached = ACCENT_CACHE.get(cacheKey);
+            if (cached != null) return cached;
+        }
+        if (bitmap == null) return fallback;
+        Palette palette = Palette.from(bitmap).maximumColorCount(12).generate();
+        int accent = extractVibrantAccent(palette, context);
+        if (cacheKey != null && !cacheKey.isEmpty()) {
+            ACCENT_CACHE.put(cacheKey, accent);
+        }
+        return accent;
     }
 
     /**

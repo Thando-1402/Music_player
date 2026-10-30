@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
@@ -44,6 +45,25 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
             listener.onFolderLongClick(folder);
             return true;
         });
+
+        if (holder.btnOptions != null) {
+            holder.btnOptions.setOnClickListener(v -> {
+                PopupMenu popup = new PopupMenu(v.getContext(), v);
+                popup.getMenu().add(0, 1, 0, "Open Folder");
+                popup.getMenu().add(0, 2, 1, "Hide Folder from Library");
+                popup.setOnMenuItemClickListener(item -> {
+                    if (item.getItemId() == 1) {
+                        listener.onFolderClick(folder);
+                        return true;
+                    } else if (item.getItemId() == 2) {
+                        listener.onFolderLongClick(folder);
+                        return true;
+                    }
+                    return false;
+                });
+                popup.show();
+            });
+        }
     }
 
     @Override
@@ -53,11 +73,13 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.FolderView
 
     public static class FolderViewHolder extends RecyclerView.ViewHolder {
         TextView textName, textStats;
+        View btnOptions;
 
         public FolderViewHolder(@NonNull View itemView) {
             super(itemView);
             textName = itemView.findViewById(R.id.text_folder_name);
             textStats = itemView.findViewById(R.id.text_folder_stats);
+            btnOptions = itemView.findViewById(R.id.btn_folder_options);
         }
     }
 }

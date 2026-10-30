@@ -2,19 +2,22 @@ package com.thando1402.auralis;
 
 import android.app.Activity;
 import android.content.Intent;
+
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class NavigationHelper {
     public static void setupBottomNavigation(Activity activity, BottomNavigationView bottomNav, int currentItemId) {
-        bottomNav.setSelectedItemId(currentItemId);
+        if (bottomNav == null) return;
+        if (currentItemId != 0) {
+            bottomNav.setSelectedItemId(currentItemId);
+        }
         bottomNav.setOnItemSelectedListener(item -> {
-            if (item.getItemId() == currentItemId) {
+            int itemId = item.getItemId();
+            if (itemId == currentItemId) {
                 return true;
             }
-            
+
             Intent intent = null;
-            int itemId = item.getItemId();
-            
             if (itemId == R.id.nav_library) {
                 intent = new Intent(activity, MainActivity.class);
             } else if (itemId == R.id.nav_playlists) {
@@ -24,9 +27,11 @@ public class NavigationHelper {
             } else if (itemId == R.id.nav_eq) {
                 intent = new Intent(activity, EqualizerActivity.class);
             }
-            
+
             if (intent != null) {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                        | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        | Intent.FLAG_ACTIVITY_NO_ANIMATION);
                 activity.startActivity(intent);
                 activity.overridePendingTransition(0, 0);
                 return true;

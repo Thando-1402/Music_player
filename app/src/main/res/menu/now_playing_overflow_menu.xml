@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_np_edit_track"
+        android:title="@string/menu_edit_current_track" />
+    <item
+        android:id="@+id/action_np_ai_sync_lyrics"
+        android:title="@string/menu_ai_sync_lyrics" />
+    <item
+        android:id="@+id/action_np_lyrics_earlier"
+        android:title="@string/menu_lyrics_earlier" />
+    <item
+        android:id="@+id/action_np_lyrics_later"
+        android:title="@string/menu_lyrics_later" />
+    <item
+        android:id="@+id/action_np_calibrate_lyrics"
+        android:title="@string/menu_calibrate_lyrics_sync" />
+    <item
+        android:id="@+id/action_np_restore_lyrics"
+        android:title="@string/menu_restore_backup_lyrics" />
+    <item
+        android:id="@+id/action_np_ai_clean"
+        android:title="@string/menu_ai_clean_current" />
+    <item
+        android:id="@+id/action_np_equalizer"
+        android:title="@string/menu_open_equalizer" />
+    <item
+        android:id="@+id/action_np_playlists"
+        android:title="@string/menu_open_playlists" />
+</menu>

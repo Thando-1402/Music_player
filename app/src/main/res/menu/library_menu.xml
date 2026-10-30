@@ -4,6 +4,6 @@
     <item
         android:id="@+id/action_open_profile"
         android:icon="@drawable/ic_avatar_placeholder"
-        android:title="Profile &amp; Settings"
+        android:title="@string/menu_profile_settings"
         app:showAsAction="always" />
 </menu>

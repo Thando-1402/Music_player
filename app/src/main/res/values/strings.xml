@@ -1,14 +1,239 @@
 <resources>
     <string name="app_name">Auralis</string>
+
+    <!-- Mini Player -->
     <string name="no_music_playing">No music playing</string>
     <string name="tap_to_select_track">Tap a song in your library to start listening</string>
+    <string name="tap_to_select_track_short">Tap to select a track</string>
+    <string name="cd_album_artwork">Album artwork</string>
+    <string name="cd_play_pause">Play or pause</string>
+    <string name="cd_skip_previous">Skip to previous track</string>
+    <string name="cd_skip_next">Skip to next track</string>
+
+    <!-- Now Playing -->
     <string name="now_playing_header">NOW PLAYING</string>
+    <string name="badge_flac_default">● HI-RES AUDIO ENGINE</string>
+    <string name="badge_lossless_master">LOSSLESS MASTER</string>
+    <string name="badge_dsp_balanced">DSP: BALANCED</string>
     <string name="select_a_track">Select a track</string>
-    <string name="auralis_hires_audio">Auralis Audio Engine</string>
+    <string name="auralis_hires_audio">Auralis Hi-Res Audio</string>
+    <string name="time_zero">0:00</string>
+    <string name="time_zero_neg">-0:00</string>
+    <string name="time_remaining_fmt">-%1$s</string>
     <string name="lyrics_action">LYRICS</string>
     <string name="eq_profile_action">EQ Profile</string>
-    <string name="auto_detected_badge">LIVE OUTPUT</string>
+    <string name="auto_detected_badge">AUTO-DETECTED</string>
+    <string name="default_speaker_dac">Internal Hi-Fi Speaker DAC</string>
+    <string name="default_speaker_codec">24-BIT PCM • SPEAKER</string>
     <string name="no_lyrics_loaded">No lyrics saved for this track.</string>
     <string name="lyrics_hint_active">♪ Tap LYRICS below to view or load .lrc lyrics</string>
-    <string name="lyrics_hint_next">Long-press LYRICS to open Track Editor</string>
+    <string name="lyrics_hint_next">Tap ⋮ menu above to edit track or calibrate sync</string>
+    <string name="cd_collapse_player">Minimize player</string>
+    <string name="cd_open_queue">Open playlists and queue</string>
+    <string name="cd_more_options">Track options</string>
+    <string name="cd_toggle_favorite">Toggle favourite</string>
+    <string name="cd_toggle_shuffle">Toggle shuffle</string>
+    <string name="cd_toggle_repeat">Toggle repeat mode</string>
+    <string name="cd_audio_route_icon">Audio output route</string>
+    <string name="cd_switch_audio_route">Switch audio output route</string>
+
+    <!-- Now Playing Overflow Menu -->
+    <string name="menu_edit_current_track">Edit Track &amp; Lyrics</string>
+    <string name="menu_ai_sync_lyrics">✨ AI Auto-Sync &amp; Fix Lyrics</string>
+    <string name="menu_lyrics_earlier">Lyrics Earlier (-0.5s)</string>
+    <string name="menu_lyrics_later">Lyrics Later (+0.5s)</string>
+    <string name="menu_calibrate_lyrics_sync">Calibrate Lyrics Sync (±200ms)</string>
+    <string name="menu_restore_backup_lyrics">Restore Original Backup Lyrics</string>
+    <string name="menu_ai_clean_current">✨ AI Auto-Clean Title &amp; Artist</string>
+    <string name="menu_open_equalizer">Equalizer &amp; DSP</string>
+    <string name="menu_open_playlists">Playlists &amp; Queue</string>
+
+    <!-- List Items -->
+    <string name="playlist_name_placeholder">Playlist Name</string>
+    <string name="playlist_count_default">0 tracks • 0:00</string>
+    <string name="cd_playlist_options">Playlist options</string>
+    <string name="song_title_placeholder">Track Title</string>
+    <string name="song_codec_badge">AUDIO</string>
+    <string name="song_codec_lossless">LOSSLESS / HQ</string>
+    <string name="song_artist_duration_default">Artist • 0:00</string>
+    <string name="song_artist_duration_fmt">%1$s • %2$s</string>
+    <string name="cd_song_options">Song options</string>
+    <string name="folder_name_placeholder">Music Folder</string>
+    <string name="folder_stats_default">0 files • 0 B</string>
+    <string name="cd_folder_icon">Audio folder</string>
+    <string name="cd_folder_options">Folder options</string>
+
+    <!-- Equalizer & DSP -->
+    <string name="eq_dsp_title">Equalizer &amp; DSP</string>
+    <string name="eq_engine_status_active">● Engine Active • 32-bit Float Processing</string>
+    <string name="eq_engine_status_bypassed">○ Engine Bypassed • Direct Output</string>
+    <string name="eq_target_curve_sub">Hardware Audio Output Curve</string>
+    <string name="eq_preset_flat">Flat</string>
+    <string name="eq_preset_bass_boost">Bass Boost</string>
+    <string name="eq_preset_rock">Rock</string>
+    <string name="eq_preset_electronic">⚡ Electronic</string>
+    <string name="eq_five_band_header">5-Band Precision Graphic EQ</string>
+    <string name="eq_zero_reset">Zero Reset</string>
+    <string name="eq_gain_plus_4">+4dB</string>
+    <string name="eq_gain_plus_2">+2dB</string>
+    <string name="eq_gain_zero">0dB</string>
+    <string name="eq_gain_plus_3">+3dB</string>
+    <string name="eq_gain_plus_5">+5dB</string>
+    <string name="eq_freq_60">60Hz</string>
+    <string name="eq_freq_230">230Hz</string>
+    <string name="eq_freq_910">910Hz</string>
+    <string name="eq_freq_3k6">3.6k</string>
+    <string name="eq_freq_14k">14kHz</string>
+    <string name="eq_bass_boost_title">Bass Boost</string>
+    <string name="eq_bass_default_pct">65%</string>
+    <string name="eq_bass_sub">Harmonic Sub-Octave</string>
+    <string name="eq_virtualizer_title">Virtualizer</string>
+    <string name="eq_virt_default_pct">40%</string>
+    <string name="eq_virt_sub">Crossfeed Binaural</string>
+
+    <!-- Main Library -->
+    <string name="search_library_hint">Search tracks, artists…</string>
+    <string name="chip_all_tracks">All Tracks</string>
+    <string name="chip_ai_smart_mix">✨ AI Smart Mix</string>
+    <string name="chip_by_artist">By Artist</string>
+    <string name="chip_storage_folders">Storage &amp; Folders</string>
+    <string name="chip_playlists">Playlists</string>
+    <string name="scanning_local_library">Scanning Local Library…</string>
+    <string name="storage_permission_required">Storage Permission Required</string>
+    <string name="library_stats_fmt">All Local Tracks (%1$d files)</string>
+    <string name="chip_all_tracks_fmt">All Tracks (%1$d)</string>
+    <string name="btn_shuffle">Shuffle</string>
+    <string name="empty_library_title">No Local Audio Found</string>
+    <string name="cd_empty_library_icon">No music icon</string>
+
+    <!-- Playlists -->
+    <string name="playlists_toolbar_title">Playlists &amp; Curator</string>
+    <string name="btn_new_playlist">+ New Playlist</string>
+    <string name="smart_curator_header">SMART CURATOR &amp; AUTO-MIXES</string>
+    <string name="favourites_master_title">Favourites Master</string>
+    <string name="favourites_count_default">0 starred tracks • Tap to play</string>
+    <string name="favourites_count_fmt">%1$d starred tracks • Tap to play</string>
+    <string name="ai_discovery_title">✨ AI Smart Discovery Queue</string>
+    <string name="ai_discovery_sub">Blends your Favourites with 25 deep-cut local tracks</string>
+    <string name="late_night_title">Late-Night Extended Sessions</string>
+    <string name="late_night_sub">Extended &amp; acoustic local tracks (&gt; 3:30 duration)</string>
+    <string name="custom_playlists_header">YOUR CUSTOM PLAYLISTS (TAP TO PLAY • LONG-PRESS TO EXPORT .M3U)</string>
+
+    <!-- Folders & Exclusions -->
+    <string name="storage_internal_short">Internal</string>
+    <string name="storage_free_default">0 B free / 0 B</string>
+    <string name="storage_microsd_short">MicroSD</string>
+    <string name="storage_not_mounted">Not Mounted</string>
+    <string name="scan_index_filters_title">Scan &amp; Index Filters</string>
+    <string name="scan_index_filters_sub">WhatsApp &amp; short clips shielded • Tap to configure</string>
+    <string name="btn_up">Up</string>
+    <string name="breadcrumbs_default">All Storage  &gt;  Audio Directories</string>
+    <string name="btn_scan_media">Scan Media</string>
+    <string name="btn_sort_name">Name</string>
+    <string name="btn_sort_size">Size</string>
+    <string name="directories_header_default">AUDIO DIRECTORIES</string>
+    <string name="loose_files_header_default">AUDIO FILES</string>
+    <string name="exclusions_toolbar_title">Folder Scan &amp; Exclusions</string>
+    <string name="exclusions_toolbar_subtitle">Manage Library Indexing</string>
+    <string name="cd_refresh_scan">Refresh scan</string>
+    <string name="cd_commit_exclusions">Apply exclusions</string>
+    <string name="library_scan_filters_title">Library Scan Filters</string>
+    <string name="badge_isolation_active">● ISOLATION ACTIVE</string>
+    <string name="library_scan_filters_desc">Excluded directories are completely omitted from library indexing and shuffle sweeps.</string>
+    <string name="active_filters_summary_default">🛡 Active Filters Shielding Non-Music Assets</string>
+    <string name="automated_filters_header">AUTOMATED FILTERS</string>
+    <string name="filter_hidden_title">Ignore Hidden Folders (.*)</string>
+    <string name="filter_hidden_sub">Bypasses system caches and hidden directories</string>
+    <string name="filter_nomedia_title">Respect .nomedia markers</string>
+    <string name="filter_nomedia_sub">Honors Android standard media suppression flags</string>
+    <string name="filter_short_title">Filter Short Clips (&lt; 30s)</string>
+    <string name="filter_short_sub">Suppresses notification pings &amp; voice notes</string>
+    <string name="tab_internal_storage">Internal Storage</string>
+    <string name="tab_microsd">MicroSD</string>
+    <string name="monitored_rules_header">MONITORED RULES</string>
+    <string name="btn_enable_all">Enable All</string>
+    <string name="dot_separator"> • </string>
+    <string name="btn_restore_hidden_folders">Restore Hidden Folders</string>
+    <string name="rule_podcasts_title">Podcasts &amp; Audiobooks</string>
+    <string name="rule_podcasts_path">/storage/emulated/0/Music/Podcasts</string>
+    <string name="rule_whatsapp_title">WhatsApp Audio &amp; Voice Notes (AUD-WA)</string>
+    <string name="rule_whatsapp_path">/storage/emulated/0/Android/media/com.whatsapp/</string>
+    <string name="rule_hires_title">Music &amp; MicroSD Audio</string>
+    <string name="rule_hires_sub">Primary Music Library (Indexed)</string>
+    <string name="btn_defaults">Defaults</string>
+    <string name="btn_apply_and_rescan">Apply &amp; Rescan</string>
+
+    <!-- Edit Track & Dialog -->
+    <string name="edit_track_toolbar_title">Edit Track Details</string>
+    <string name="btn_save">Save</string>
+    <string name="btn_change_art">Change Art</string>
+    <string name="btn_extract">Extract</string>
+    <string name="btn_gallery">Gallery</string>
+    <string name="cd_remove_art">Remove custom cover art</string>
+    <string name="local_audio_file">Local Audio File</string>
+    <string name="primary_id3_header">PRIMARY ID3 TAGS (ID3v2.4)</string>
+    <string name="btn_ai_clean_tags">✨ AI Auto-Clean Title &amp; Artist</string>
+    <string name="hint_track_title">Track Title</string>
+    <string name="hint_artist">Artist</string>
+    <string name="hint_album">Album</string>
+    <string name="hint_track_num">Track #</string>
+    <string name="hint_year_genre">Year / Genre</string>
+    <string name="label_synced_lrc">Synchronized LRC Lyrics</string>
+    <string name="badge_local">BACKUP LRC</string>
+    <string name="snippet_lrc_empty">No lyrics saved yet. Active .lrc files save to Auralis/Lyrics_Synced/ with originals preserved in Lyrics_Original_Backup/.</string>
+    <string name="btn_edit_paste_lyrics">Edit / Paste Lyrics (.lrc)</string>
+    <string name="btn_save_changes">Save Changes</string>
+    <string name="dialog_edit_track_title">Edit Track Info &amp; Cover</string>
+    <string name="dialog_saving_target">Saving to MicroSD / External Cache</string>
+    <string name="btn_change_album_cover">Change Album Cover</string>
+    <string name="hint_artist_name">Artist Name</string>
+
+    <!-- Profile & Settings / Profile Setup -->
+    <string name="profile_default_name">Listener</string>
+    <string name="profile_default_subtitle">OFFLINE LISTENER  •  Tap to customize or sign in</string>
+    <string name="stat_zero">0</string>
+    <string name="stat_zero_size">0 B</string>
+    <string name="stat_offline_ready">100%</string>
+    <string name="stat_label_tracks">TRACKS</string>
+    <string name="stat_label_playlists">PLAYLISTS</string>
+    <string name="stat_label_local">LOCAL</string>
+    <string name="stat_label_offline">OFFLINE</string>
+    <string name="hardware_monitor_header">HARDWARE MONITOR &amp; DAC</string>
+    <string name="dac_optimal_path_desc">Live hardware audio route monitoring active</string>
+    <string name="dsp_audio_engine_header">DSP &amp; AUDIO ENGINE</string>
+    <string name="bit_perfect_title">Bit-Perfect Direct DAC</string>
+    <string name="bit_perfect_sub">Bypasses system mixer for bit-perfect output</string>
+    <string name="btn_edit_profile_auth">Account &amp; Profile Setup</string>
+    <string name="btn_configure_openrouter">Configure OpenRouter AI Key</string>
+    <string name="btn_run_diagnostics">Run DAC &amp; Crash Telemetry Diagnostics</string>
+
+    <!-- Profile Setup & Firebase Auth Screen -->
+    <string name="setup_welcome_title">Welcome to Auralis</string>
+    <string name="setup_welcome_subtitle">Personalize your listener profile or link Firebase Cloud Sync</string>
+    <string name="setup_display_name_hint">Your Display Name</string>
+    <string name="setup_save_local_btn">Save Profile (Offline Ready)</string>
+    <string name="setup_cloud_header">OPTIONAL FIREBASE SPARK CLOUD SYNC</string>
+    <string name="setup_email_hint">Email Address</string>
+    <string name="setup_password_hint">Password (6+ characters)</string>
+    <string name="setup_btn_sign_in">Sign In</string>
+    <string name="setup_btn_register">Create Account</string>
+    <string name="setup_btn_guest">Continue as Guest (Anonymous Auth)</string>
+    <string name="setup_btn_sign_out">Sign Out of Cloud Account</string>
+    <string name="setup_status_offline">Mode: Local Offline Profile</string>
+
+    <!-- Menus -->
+    <string name="menu_search_library">Search Library</string>
+    <string name="menu_profile_settings">Profile &amp; Settings</string>
+    <string name="menu_sort_title">Sort by Title (A–Z)</string>
+    <string name="menu_sort_artist">Sort by Artist</string>
+    <string name="menu_rescan_storage">Rescan Storage</string>
+    <string name="nav_library">Library</string>
+    <string name="nav_playlists">Playlists</string>
+    <string name="nav_folders">Folders</string>
+    <string name="nav_eq">EQ</string>
+    <string name="menu_play_now">Play Now</string>
+    <string name="menu_edit_tags">Edit ID3 Tags / Artwork</string>
+    <string name="menu_openrouter_key">OpenRouter AI Key</string>
+    <string name="menu_reset_dsp">Reset DSP Engine to Defaults</string>
+    <string name="menu_about_auralis">About Auralis Lossless</string>
 </resources>

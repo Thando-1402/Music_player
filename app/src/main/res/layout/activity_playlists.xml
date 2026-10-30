@@ -13,7 +13,7 @@
         android:layout_width="0dp"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/bg_window"
-        app:title="Playlists &amp; Curator"
+        app:title="@string/playlists_toolbar_title"
         app:titleTextColor="@color/text_primary"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -25,7 +25,7 @@
         android:layout_width="wrap_content"
         android:layout_height="36dp"
         android:layout_marginEnd="16dp"
-        android:text="+ New Playlist"
+        android:text="@string/btn_new_playlist"
         android:textSize="11sp"
         android:textColor="@color/accent_blue"
         app:backgroundTint="@color/surface_card"
@@ -54,7 +54,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="SMART CURATOR &amp; AUTO-MIXES"
+                android:text="@string/smart_curator_header"
                 android:textColor="@color/text_secondary"
                 android:textSize="11sp"
                 android:fontFamily="sans-serif-bold"
@@ -76,6 +76,7 @@
                     android:id="@+id/icon_fav_mix"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
+                    android:contentDescription="@string/favourites_master_title"
                     android:src="@drawable/ic_favorite_24"
                     app:tint="@color/accent_blue"
                     app:layout_constraintTop_toTopOf="parent"
@@ -95,7 +96,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Favourites Master"
+                        android:text="@string/favourites_master_title"
                         android:textColor="@color/text_primary"
                         android:textSize="15sp"
                         android:fontFamily="sans-serif-bold" />
@@ -105,7 +106,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="0 starred tracks • Tap to play"
+                        android:text="@string/favourites_count_default"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -126,6 +127,7 @@
                     android:id="@+id/icon_ai_mix"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
+                    android:contentDescription="@string/ai_discovery_title"
                     android:src="@drawable/ic_auto_awesome_24"
                     app:tint="@color/accent_blue"
                     app:layout_constraintTop_toTopOf="parent"
@@ -145,7 +147,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="✨ AI Smart Discovery Queue"
+                        android:text="@string/ai_discovery_title"
                         android:textColor="@color/text_primary"
                         android:textSize="15sp"
                         android:fontFamily="sans-serif-bold" />
@@ -154,7 +156,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Blends your Favourites with 25 deep-cut local tracks"
+                        android:text="@string/ai_discovery_sub"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -175,6 +177,7 @@
                     android:id="@+id/icon_chill_mix"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
+                    android:contentDescription="@string/late_night_title"
                     android:src="@drawable/ic_headphones_24"
                     app:tint="@color/accent_blue"
                     app:layout_constraintTop_toTopOf="parent"
@@ -194,7 +197,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Late-Night Extended Sessions"
+                        android:text="@string/late_night_title"
                         android:textColor="@color/text_primary"
                         android:textSize="15sp"
                         android:fontFamily="sans-serif-bold" />
@@ -203,7 +206,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Extended &amp; acoustic local tracks (&gt; 3:30 duration)"
+                        android:text="@string/late_night_sub"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -212,7 +215,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="YOUR CUSTOM PLAYLISTS (TAP TO PLAY • LONG-PRESS TO EXPORT .M3U)"
+                android:text="@string/custom_playlists_header"
                 android:textColor="@color/text_secondary"
                 android:textSize="11sp"
                 android:fontFamily="sans-serif-bold"

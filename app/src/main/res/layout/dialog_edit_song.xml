@@ -10,7 +10,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Edit Track Info &amp; Cover"
+        android:text="@string/dialog_edit_track_title"
         android:textColor="@color/text_primary"
         android:textSize="18sp"
         android:fontFamily="sans-serif-bold" />
@@ -20,7 +20,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="Saving to MicroSD / External Cache"
+        android:text="@string/dialog_saving_target"
         android:textColor="@color/accent_blue"
         android:textSize="12sp" />
 
@@ -30,6 +30,7 @@
         android:layout_height="96dp"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="16dp"
+        android:contentDescription="@string/cd_album_artwork"
         android:scaleType="centerCrop"
         android:src="@drawable/ic_album_placeholder"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.Rounded8dp" />
@@ -41,7 +42,7 @@
         android:layout_height="38dp"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="8dp"
-        android:text="Change Album Cover"
+        android:text="@string/btn_change_album_cover"
         android:textColor="@color/accent_blue"
         android:textSize="12sp"
         app:strokeColor="@color/divider_line" />
@@ -51,7 +52,8 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:layout_marginTop="16dp"
-        android:hint="Track Title"
+        android:autofillHints=""
+        android:hint="@string/hint_track_title"
         android:textColor="@color/text_primary"
         android:textColorHint="@color/text_secondary"
         android:inputType="textCapWords" />
@@ -61,7 +63,8 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:layout_marginTop="8dp"
-        android:hint="Artist Name"
+        android:autofillHints=""
+        android:hint="@string/hint_artist_name"
         android:textColor="@color/text_primary"
         android:textColorHint="@color/text_secondary"
         android:inputType="textCapWords" />

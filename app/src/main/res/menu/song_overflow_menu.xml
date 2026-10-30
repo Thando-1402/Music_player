@@ -2,11 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/action_play_now"
-        android:title="Play Now" />
+        android:title="@string/menu_play_now" />
     <item
         android:id="@+id/action_ai_clean_song"
-        android:title="✨ AI Auto-Clean Title &amp; Artist" />
+        android:title="@string/menu_ai_clean_current" />
     <item
         android:id="@+id/action_edit_tags"
-        android:title="Edit ID3 Tags / Artwork" />
+        android:title="@string/menu_edit_tags" />
 </menu>

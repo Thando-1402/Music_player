@@ -1,10 +1,12 @@
 package com.thando1402.auralis;
 
 import android.annotation.SuppressLint;
+import android.graphics.Bitmap;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
+import android.widget.ImageView;
 
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator;
 
@@ -17,7 +19,7 @@ public final class UiAnimationHelper {
     private UiAnimationHelper() {}
 
     /**
-     * Attaches lightweight RenderThread spring press physics to buttons/cards.
+     * Attaches lightweight RenderThread spring press physics to buttons/cards using GPU layers.
      */
     @SuppressLint("ClickableViewAccessibility")
     public static void attachSpringTouch(View... views) {
@@ -31,6 +33,7 @@ public final class UiAnimationHelper {
                         .scaleY(0.90f)
                         .setDuration(85)
                         .setInterpolator(DECELERATE)
+                        .withLayer()
                         .start();
             } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
                 v.animate().cancel();
@@ -39,6 +42,7 @@ public final class UiAnimationHelper {
                         .scaleY(1.0f)
                         .setDuration(190)
                         .setInterpolator(OVERSHOOT)
+                        .withLayer()
                         .start();
             }
             return false;
@@ -63,6 +67,7 @@ public final class UiAnimationHelper {
                 .scaleY(1.0f)
                 .setDuration(240)
                 .setInterpolator(OVERSHOOT)
+                .withLayer()
                 .start();
     }
 
@@ -120,5 +125,21 @@ public final class UiAnimationHelper {
                     .start();
             delay += 35L;
         }
+    }
+
+    /**
+     * Smoothly crossfades album art bitmap changes using GPU hardware layers.
+     */
+    public static void crossfadeBitmap(ImageView imageView, Bitmap bitmap) {
+        if (imageView == null || bitmap == null) return;
+        imageView.animate().cancel();
+        imageView.setAlpha(0.35f);
+        imageView.setImageBitmap(bitmap);
+        imageView.animate()
+                .alpha(1.0f)
+                .setDuration(200)
+                .setInterpolator(DECELERATE)
+                .withLayer()
+                .start();
     }
 }

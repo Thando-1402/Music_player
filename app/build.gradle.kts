@@ -7,11 +7,6 @@ plugins {
     alias(libs.plugins.google.firebase.firebase.perf)
 }
 
-if (file("google-services.json").exists()) {
-    apply(plugin = "com.google.gms.google-services")
-    apply(plugin = "com.google.firebase.crashlytics")
-}
-
 android {
     namespace = "com.thando1402.auralis"
     compileSdk {
@@ -60,12 +55,14 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.auth)
     implementation(libs.firebase.perf)
+    implementation(libs.work.runtime)
     implementation("com.google.firebase:firebase-analytics:22.1.2")
     implementation(libs.material)
     
     implementation("com.google.firebase:firebase-ai:18.1.0")
-    implementation("com.google.firebase:firebase-appcheck-debug:20.0.0")
+    debugImplementation("com.google.firebase:firebase-appcheck-debug:20.0.0")
     implementation("com.google.guava:guava:31.0.1-android")
     implementation("org.reactivestreams:reactive-streams:1.0.4")
     implementation("androidx.palette:palette:1.0.0")

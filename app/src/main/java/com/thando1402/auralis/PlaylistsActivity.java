@@ -9,14 +9,16 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
-import android.view.Gravity;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatImageButton;
 import androidx.core.content.ContextCompat;
@@ -26,6 +28,7 @@ import androidx.media3.common.Player;
 import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
 
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.imageview.ShapeableImageView;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -41,32 +44,39 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class PlaylistsActivity extends AppCompatActivity {
 
-    private static final String PREFS_PLAYLISTS = "auralis_custom_playlists";
-    private static final String KEY_JSON = "playlists_json";
+    public static final String PREFS_PLAYLISTS = "auralis_custom_playlists";
+    public static final String KEY_JSON = "playlists_json";
 
     private final List<Song> allSongs = new ArrayList<>();
     private LinearLayout containerCustomPlaylists;
     private TextView tvFavCount;
 
     private TextView miniTitle, miniSubtitle;
-    private AppCompatImageButton btnPrev, btnPlayPause, btnNext;
+    private AppCompatImageButton btnPlayPause, btnNext;
     private ShapeableImageView miniArt;
+    private View miniPlayerContainer;
 
     private MediaController mediaController;
     private ListenableFuture<MediaController> controllerFuture;
+    private ExecutorService scanExecutor;
+    private Handler mainHandler;
 
     private final Player.Listener playerListener = new Player.Listener() {
         @Override
         public void onMediaItemTransition(MediaItem mediaItem, int reason) {
             syncMiniPlayerUI();
         }
+
         @Override
-        public void onMediaMetadataChanged(MediaMetadata mediaMetadata) {
+        public void onMediaMetadataChanged(@NonNull MediaMetadata mediaMetadata) {
             syncMiniPlayerUI();
         }
+
         @Override
         public void onIsPlayingChanged(boolean isPlaying) {
             if (btnPlayPause != null) {
@@ -80,20 +90,36 @@ public class PlaylistsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_playlists);
 
+        scanExecutor = Executors.newSingleThreadExecutor();
+        mainHandler = new Handler(Looper.getMainLooper());
+
+        MaterialToolbar toolbar = findViewById(R.id.toolbar_playlists);
+        if (toolbar != null) {
+            toolbar.setOnMenuItemClickListener(item -> {
+                if (item.getItemId() == R.id.action_open_profile) {
+                    startActivity(new Intent(this, ProfileSettingsActivity.class));
+                    return true;
+                }
+                return false;
+            });
+        }
+
         containerCustomPlaylists = findViewById(R.id.container_custom_playlists);
         tvFavCount = findViewById(R.id.tv_fav_count);
 
         miniTitle = findViewById(R.id.mini_title);
         miniSubtitle = findViewById(R.id.mini_subtitle);
-        btnPrev = findViewById(R.id.mini_prev);
         btnPlayPause = findViewById(R.id.mini_play_pause);
         btnNext = findViewById(R.id.mini_next);
         miniArt = findViewById(R.id.mini_track_art);
+        miniPlayerContainer = findViewById(R.id.mini_player_playlists);
 
-        loadLocalTracks();
+        loadLocalTracksAsync();
         renderCustomPlaylists();
 
-        findViewById(R.id.btn_new_playlist).setOnClickListener(v -> showCreatePlaylistDialog());
+        View btnNewPlaylist = findViewById(R.id.btn_new_playlist);
+        btnNewPlaylist.setOnClickListener(v -> showCreatePlaylistDialog());
+        UiAnimationHelper.attachSpringTouch(btnNewPlaylist);
 
         findViewById(R.id.card_playlist_favorites).setOnClickListener(v -> {
             List<Song> favs = new ArrayList<>();
@@ -116,6 +142,7 @@ public class PlaylistsActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.card_playlist_chill).setOnClickListener(v -> {
+            if (allSongs.isEmpty()) return;
             List<Song> chill = new ArrayList<>();
             for (Song s : allSongs) {
                 if (s.getDuration() >= 210_000L) {
@@ -134,54 +161,70 @@ public class PlaylistsActivity extends AppCompatActivity {
         }
     }
 
-    private void loadLocalTracks() {
-        allSongs.clear();
-        Uri collection = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-                ? MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-                : MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+    private void loadLocalTracksAsync() {
+        scanExecutor.execute(() -> {
+            List<Song> loaded = new ArrayList<>();
+            Uri collection = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                    ? MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+                    : MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
 
-        String[] proj = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-                ? new String[]{MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST, MediaStore.Audio.Media.DATA, MediaStore.Audio.Media.DURATION, MediaStore.Audio.Media.VOLUME_NAME}
-                : new String[]{MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST, MediaStore.Audio.Media.DATA, MediaStore.Audio.Media.DURATION};
+            String[] proj = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                    ? new String[]{MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST, MediaStore.Audio.Media.DATA, MediaStore.Audio.Media.DURATION, MediaStore.Audio.Media.VOLUME_NAME}
+                    : new String[]{MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST, MediaStore.Audio.Media.DATA, MediaStore.Audio.Media.DURATION};
 
-        int favCounter = 0;
-        try (Cursor c = getContentResolver().query(collection, proj, MediaStore.Audio.Media.IS_MUSIC + " != 0", null, MediaStore.Audio.Media.TITLE + " ASC")) {
-            if (c != null) {
-                int idCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
-                int tCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
-                int aCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
-                int dCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
-                int durCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
-                int volCol = c.getColumnIndex(MediaStore.Audio.Media.VOLUME_NAME);
+            int favCounter = 0;
+            try (Cursor c = getContentResolver().query(collection, proj, MediaStore.Audio.Media.IS_MUSIC + " != 0", null, MediaStore.Audio.Media.TITLE + " ASC")) {
+                if (c != null) {
+                    int idCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
+                    int tCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
+                    int aCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
+                    int dCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
+                    int durCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
+                    int volCol = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                            ? c.getColumnIndex(MediaStore.Audio.Media.VOLUME_NAME) : -1;
 
-                while (c.moveToNext()) {
-                    long id = c.getLong(idCol);
-                    String title = c.getString(tCol);
-                    String artist = c.getString(aCol);
-                    String data = c.getString(dCol);
-                    long duration = c.getLong(durCol);
+                    while (c.moveToNext()) {
+                        long id = c.getLong(idCol);
+                        String title = c.getString(tCol);
+                        String artist = c.getString(aCol);
+                        String data = c.getString(dCol);
+                        long duration = c.getLong(durCol);
 
-                    if (AudioFilterManager.shouldExcludeTrack(this, title, data, duration)) continue;
+                        if (AudioFilterManager.shouldExcludeTrack(getApplicationContext(), title, data, duration)) {
+                            continue;
+                        }
 
-                    Uri uri;
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && volCol != -1) {
-                        String vol = c.getString(volCol);
-                        uri = (vol != null && !vol.isEmpty()) ? MediaStore.Audio.Media.getContentUri(vol, id) : ContentUris.withAppendedId(collection, id);
-                    } else {
-                        uri = ContentUris.withAppendedId(collection, id);
+                        Uri uri;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && volCol != -1) {
+                            String vol = c.getString(volCol);
+                            uri = (vol != null && !vol.isEmpty())
+                                    ? ContentUris.withAppendedId(MediaStore.Audio.Media.getContentUri(vol), id)
+                                    : ContentUris.withAppendedId(collection, id);
+                        } else {
+                            uri = ContentUris.withAppendedId(collection, id);
+                        }
+
+                        Song s = new Song(title, artist, uri, duration);
+                        SongMetadataManager.applySavedEdits(getApplicationContext(), s, false);
+                        loaded.add(s);
+                        if (SongMetadataManager.isFavorite(getApplicationContext(), uri.toString())) {
+                            favCounter++;
+                        }
                     }
-
-                    Song s = new Song(title, artist, uri, duration);
-                    SongMetadataManager.applySavedEdits(this, s);
-                    allSongs.add(s);
-                    if (SongMetadataManager.isFavorite(this, uri.toString())) favCounter++;
                 }
+            } catch (Exception ignored) {
             }
-        } catch (Exception ignored) {
-        }
-        if (tvFavCount != null) {
-            tvFavCount.setText(favCounter + " starred tracks • Tap to play");
-        }
+
+            final int finalFavCount = favCounter;
+            mainHandler.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                allSongs.clear();
+                allSongs.addAll(loaded);
+                if (tvFavCount != null) {
+                    tvFavCount.setText(getString(R.string.favourites_count_fmt, finalFavCount));
+                }
+            });
+        });
     }
 
     private void showCreatePlaylistDialog() {
@@ -299,7 +342,10 @@ public class PlaylistsActivity extends AppCompatActivity {
     private void exportPlaylistM3u(String name, JSONArray uriArray) {
         try {
             File dir = new File(SongMetadataManager.getStorageDirectory(this), "playlists");
-            if (!dir.exists()) dir.mkdirs();
+            if (!dir.exists()) {
+                //noinspection ResultOfMethodCallIgnored
+                dir.mkdirs();
+            }
             File m3u = new File(dir, name.replaceAll("[^a-zA-Z0-9_-]", "_") + ".m3u");
             StringBuilder sb = new StringBuilder("#EXTM3U\n");
             if (uriArray != null) {
@@ -318,18 +364,7 @@ public class PlaylistsActivity extends AppCompatActivity {
 
     private void playSongQueue(List<Song> songs, String toastMessage) {
         if (mediaController == null || songs.isEmpty()) return;
-        List<MediaItem> items = new ArrayList<>();
-        for (Song song : songs) {
-            MediaMetadata.Builder meta = new MediaMetadata.Builder()
-                    .setTitle(song.getTitle())
-                    .setArtist(song.getArtist());
-            if (song.getCustomCoverUri() != null) meta.setArtworkUri(song.getCustomCoverUri());
-            items.add(new MediaItem.Builder()
-                    .setUri(song.getUri())
-                    .setMediaId(song.getUri().toString())
-                    .setMediaMetadata(meta.build())
-                    .build());
-        }
+        List<MediaItem> items = PlaybackStateHelper.buildAdaptiveQueue(songs);
         mediaController.setMediaItems(items, 0, 0);
         mediaController.prepare();
         mediaController.play();
@@ -346,19 +381,13 @@ public class PlaylistsActivity extends AppCompatActivity {
                 }
             });
         }
-        if (btnPrev != null) {
-            btnPrev.setOnClickListener(v -> {
-                if (mediaController != null) mediaController.seekToPrevious();
-            });
-        }
         if (btnNext != null) {
             btnNext.setOnClickListener(v -> {
                 if (mediaController != null) mediaController.seekToNext();
             });
         }
-        View mini = findViewById(R.id.mini_player_playlists);
-        if (mini != null) {
-            mini.setOnClickListener(v -> {
+        if (miniPlayerContainer != null) {
+            miniPlayerContainer.setOnClickListener(v -> {
                 startActivity(new Intent(this, NowPlayingActivity.class));
                 overridePendingTransition(R.anim.slide_up_in, 0);
             });
@@ -377,7 +406,8 @@ public class PlaylistsActivity extends AppCompatActivity {
                 mediaController = future.get();
                 mediaController.addListener(playerListener);
                 syncMiniPlayerUI();
-            } catch (ExecutionException | InterruptedException | CancellationException ignored) {}
+            } catch (ExecutionException | InterruptedException | CancellationException ignored) {
+            }
         }, ContextCompat.getMainExecutor(this));
     }
 
@@ -394,24 +424,23 @@ public class PlaylistsActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (scanExecutor != null) {
+            scanExecutor.shutdownNow();
+        }
+    }
+
     private void syncMiniPlayerUI() {
-        if (mediaController == null) return;
-        MediaItem currentItem = mediaController.getCurrentMediaItem();
-        if (currentItem != null) {
-            CharSequence title = currentItem.mediaMetadata.title;
-            CharSequence artist = currentItem.mediaMetadata.artist;
-            if (miniTitle != null && title != null && title.length() > 0) miniTitle.setText(title);
-            if (miniSubtitle != null && artist != null && artist.length() > 0) miniSubtitle.setText(artist);
-            if (miniArt != null) {
-                if (currentItem.mediaMetadata.artworkUri != null) {
-                    miniArt.setImageURI(currentItem.mediaMetadata.artworkUri);
-                } else {
-                    miniArt.setImageResource(R.drawable.ic_album_placeholder);
-                }
-            }
-        }
-        if (btnPlayPause != null) {
-            btnPlayPause.setImageResource(mediaController.isPlaying() ? R.drawable.ic_pause_24 : R.drawable.ic_play_arrow_24);
-        }
+        PlaybackStateHelper.syncMiniPlayerView(
+                this,
+                mediaController,
+                miniPlayerContainer,
+                miniTitle,
+                miniSubtitle,
+                miniArt,
+                btnPlayPause
+        );
     }
 }

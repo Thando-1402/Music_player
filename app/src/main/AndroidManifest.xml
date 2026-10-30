@@ -1,21 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Permission for Android 12 and below (Your Nokia 1.4) -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+    <!-- Permission for Android 12 and below (Nokia 1.4) -->
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
 
     <!-- Permission for Android 13+ -->
-    <uses-permission
-        android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <application
+        android:name=".AuralisApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -39,6 +42,7 @@
         <activity android:name=".FoldersActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".EqualizerActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ProfileSettingsActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".ProfileSetupActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".NowPlayingActivity" android:exported="false" />
         <activity android:name=".FolderExclusionsActivity" android:exported="false" />
         <activity android:name=".EditTrackActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />

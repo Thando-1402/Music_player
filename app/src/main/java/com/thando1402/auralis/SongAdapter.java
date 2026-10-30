@@ -1,9 +1,13 @@
 package com.thando1402.auralis;
 
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -15,6 +19,8 @@ import com.google.android.material.imageview.ShapeableImageView;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder> {
 
@@ -23,6 +29,9 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         default void onSongOptionsClick(int position) {}
         default void onSongAiCleanClick(int position) {}
     }
+
+    private static final ExecutorService THUMB_EXECUTOR = Executors.newFixedThreadPool(2);
+    private static final Handler MAIN_HANDLER = new Handler(Looper.getMainLooper());
 
     private final List<Song> songs;
     private final OnSongClickListener listener;
@@ -53,14 +62,11 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         holder.textTitle.setText(song.getTitle());
 
         String durationStr = formatDuration(song.getDuration());
-        holder.textArtist.setText(song.getArtist() + " • " + durationStr);
-        holder.textCodec.setText("LOSSLESS / HQ");
+        holder.textArtist.setText(holder.itemView.getContext().getString(
+                R.string.song_artist_duration_fmt, song.getArtist(), durationStr));
+        holder.textCodec.setText(R.string.song_codec_lossless);
 
-        if (song.getCustomCoverUri() != null) {
-            holder.imageArt.setImageURI(song.getCustomCoverUri());
-        } else {
-            holder.imageArt.setImageResource(R.drawable.ic_album_placeholder);
-        }
+        bindSongCoverArt(holder.imageArt, song);
 
         boolean isCurrent = (position == selectedPosition);
         if (holder.indicator != null) {
@@ -105,6 +111,40 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
                 popup.show();
             });
         }
+    }
+
+    private void bindSongCoverArt(ShapeableImageView imageArt, Song song) {
+        if (imageArt == null) return;
+        Uri audioUri = song.getUri();
+        Uri customUri = song.getCustomCoverUri();
+        if (audioUri == null && customUri == null) {
+            imageArt.setTag(null);
+            imageArt.setImageResource(R.drawable.ic_album_placeholder);
+            return;
+        }
+
+        final String cacheKey = "row|" + (audioUri != null ? audioUri : "")
+                + (customUri != null ? "|" + customUri : "");
+        imageArt.setTag(cacheKey);
+
+        Bitmap cached = ArtworkColorHelper.getCachedThumbnail(cacheKey);
+        if (cached != null) {
+            imageArt.setImageBitmap(cached);
+            return;
+        }
+
+        imageArt.setImageResource(R.drawable.ic_album_placeholder);
+        final Context appCtx = imageArt.getContext().getApplicationContext();
+        THUMB_EXECUTOR.execute(() -> {
+            Bitmap loaded = ArtworkColorHelper.loadThumbnailCached(appCtx, cacheKey, customUri, audioUri, 96);
+            if (loaded != null) {
+                MAIN_HANDLER.post(() -> {
+                    if (cacheKey.equals(imageArt.getTag())) {
+                        imageArt.setImageBitmap(loaded);
+                    }
+                });
+            }
+        });
     }
 
     private String formatDuration(long durationMs) {

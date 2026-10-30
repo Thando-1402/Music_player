@@ -14,7 +14,7 @@
         android:layout_width="0dp"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/bg_window"
-        app:title="Auralis"
+        app:title="@string/app_name"
         app:titleTextColor="@color/text_primary"
         app:menu="@menu/profile_menu"
         app:layout_constraintTop_toTopOf="parent"
@@ -39,10 +39,14 @@
 
             <!-- Profile Identity Card -->
             <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/card_profile_identity"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:background="@color/surface_card"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
                 android:padding="16dp">
 
                 <!-- Avatar Circle -->
@@ -50,6 +54,7 @@
                     android:id="@+id/img_profile_avatar"
                     android:layout_width="56dp"
                     android:layout_height="56dp"
+                    android:contentDescription="@string/menu_profile_settings"
                     android:src="@drawable/ic_avatar_placeholder"
                     app:strokeColor="@color/accent_blue"
                     app:strokeWidth="2dp"
@@ -71,16 +76,17 @@
                         android:id="@+id/text_user_name"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Alex Vance"
+                        android:text="@string/profile_default_name"
                         android:textColor="@color/text_primary"
                         android:textSize="18sp"
                         android:fontFamily="sans-serif-bold" />
 
                     <TextView
+                        android:id="@+id/text_user_subtitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="HI-RES MASTER  •  @alex.audio"
+                        android:text="@string/profile_default_subtitle"
                         android:textColor="@color/accent_blue"
                         android:textSize="12sp"
                         android:fontFamily="sans-serif-medium" />
@@ -91,6 +97,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
+                    android:baselineAligned="false"
                     android:orientation="horizontal"
                     android:weightSum="4"
                     app:layout_constraintTop_toBottomOf="@id/img_profile_avatar"
@@ -104,18 +111,19 @@
                         android:orientation="vertical"
                         android:gravity="center">
                         <TextView
+                            android:id="@+id/tv_stat_tracks"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="142"
+                            android:text="@string/stat_zero"
                             android:textColor="@color/text_primary"
                             android:textSize="16sp"
                             android:fontFamily="sans-serif-bold" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="TRACKS"
+                            android:text="@string/stat_label_tracks"
                             android:textColor="@color/text_secondary"
-                            android:textSize="10sp" />
+                            android:textSize="11sp" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -125,18 +133,19 @@
                         android:orientation="vertical"
                         android:gravity="center">
                         <TextView
+                            android:id="@+id/tv_stat_playlists"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="6"
+                            android:text="@string/stat_zero"
                             android:textColor="@color/text_primary"
                             android:textSize="16sp"
                             android:fontFamily="sans-serif-bold" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="PLAYLISTS"
+                            android:text="@string/stat_label_playlists"
                             android:textColor="@color/text_secondary"
-                            android:textSize="10sp" />
+                            android:textSize="11sp" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -146,18 +155,19 @@
                         android:orientation="vertical"
                         android:gravity="center">
                         <TextView
+                            android:id="@+id/tv_stat_local_size"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="7.55GB"
+                            android:text="@string/stat_zero_size"
                             android:textColor="@color/text_primary"
                             android:textSize="16sp"
                             android:fontFamily="sans-serif-bold" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="LOCAL"
+                            android:text="@string/stat_label_local"
                             android:textColor="@color/text_secondary"
-                            android:textSize="10sp" />
+                            android:textSize="11sp" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -167,21 +177,46 @@
                         android:orientation="vertical"
                         android:gravity="center">
                         <TextView
+                            android:id="@+id/tv_stat_sync_mode"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="100%"
+                            android:text="@string/stat_offline_ready"
                             android:textColor="@color/accent_blue"
                             android:textSize="16sp"
                             android:fontFamily="sans-serif-bold" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="OFFLINE"
+                            android:text="@string/stat_label_offline"
                             android:textColor="@color/text_secondary"
-                            android:textSize="10sp" />
+                            android:textSize="11sp" />
                     </LinearLayout>
                 </LinearLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_open_profile_setup"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginTop="10dp"
+                android:text="@string/btn_edit_profile_auth"
+                android:textSize="13sp"
+                android:textColor="@color/accent_blue"
+                app:backgroundTint="@color/surface_card"
+                app:cornerRadius="8dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_configure_openrouter"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginTop="8dp"
+                android:text="@string/btn_configure_openrouter"
+                android:textSize="13sp"
+                android:textColor="@color/text_primary"
+                app:backgroundTint="@color/surface_card"
+                app:cornerRadius="8dp" />
 
             <!-- Hardware DAC Header -->
             <TextView
@@ -189,7 +224,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:layout_marginBottom="8dp"
-                android:text="HARDWARE MONITOR &amp; DAC"
+                android:text="@string/hardware_monitor_header"
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp"
                 android:fontFamily="sans-serif-bold"
@@ -197,6 +232,7 @@
 
             <!-- DAC Card -->
             <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/card_profile_dac"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@color/surface_card"
@@ -206,6 +242,7 @@
                     android:id="@+id/icon_dac_headphones"
                     android:layout_width="28dp"
                     android:layout_height="28dp"
+                    android:contentDescription="@string/cd_audio_route_icon"
                     android:src="@drawable/ic_headphones_24"
                     app:tint="@color/accent_blue"
                     app:layout_constraintTop_toTopOf="parent"
@@ -213,20 +250,25 @@
 
                 <TextView
                     android:id="@+id/text_dac_device"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="12dp"
-                    android:text="Sony WH-1000XM5"
+                    android:layout_marginEnd="8dp"
+                    android:text="@string/default_speaker_dac"
                     android:textColor="@color/text_primary"
                     android:textSize="15sp"
                     android:fontFamily="sans-serif-medium"
+                    android:maxLines="1"
+                    android:ellipsize="end"
                     app:layout_constraintTop_toTopOf="@id/icon_dac_headphones"
-                    app:layout_constraintStart_toEndOf="@id/icon_dac_headphones" />
+                    app:layout_constraintStart_toEndOf="@id/icon_dac_headphones"
+                    app:layout_constraintEnd_toStartOf="@id/text_dac_codec" />
 
                 <TextView
+                    android:id="@+id/text_dac_codec"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="LDAC 990 KBPS"
+                    android:text="@string/default_speaker_codec"
                     android:textColor="@color/accent_blue"
                     android:textSize="11sp"
                     android:background="@color/surface_container_high"
@@ -237,10 +279,11 @@
                     app:layout_constraintEnd_toEndOf="parent" />
 
                 <TextView
+                    android:id="@+id/text_dac_desc"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Optimal high-resolution wireless path active"
+                    android:text="@string/dac_optimal_path_desc"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"
                     app:layout_constraintTop_toBottomOf="@id/text_dac_device"
@@ -254,7 +297,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:layout_marginBottom="8dp"
-                android:text="DSP &amp; AUDIO ENGINE"
+                android:text="@string/dsp_audio_engine_header"
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp"
                 android:fontFamily="sans-serif-bold"
@@ -272,7 +315,7 @@
                     android:id="@+id/text_bitperfect_title"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Bit-Perfect Direct DAC"
+                    android:text="@string/bit_perfect_title"
                     android:textColor="@color/text_primary"
                     android:textSize="15sp"
                     android:fontFamily="sans-serif-medium"
@@ -284,7 +327,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="Bypasses system mixer for bit-perfect output"
+                    android:text="@string/bit_perfect_sub"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"
                     app:layout_constraintTop_toBottomOf="@id/text_bitperfect_title"
@@ -310,7 +353,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="16dp"
-                android:text="Run DAC Latency Diagnostics"
+                android:text="@string/btn_run_diagnostics"
                 android:textSize="13sp"
                 android:textColor="@color/accent_blue"
                 app:icon="@drawable/ic_speed_24"

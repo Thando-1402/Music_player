@@ -4,23 +4,23 @@
     <item
         android:id="@+id/action_search"
         android:icon="@drawable/ic_search_24"
-        android:title="Search Library"
+        android:title="@string/menu_search_library"
         app:showAsAction="always" />
     <item
         android:id="@+id/action_open_profile"
         android:icon="@drawable/ic_avatar_placeholder"
-        android:title="Profile &amp; Settings"
+        android:title="@string/menu_profile_settings"
         app:showAsAction="always" />
     <item
         android:id="@+id/action_sort_title"
-        android:title="Sort by Title (A-Z)"
+        android:title="@string/menu_sort_title"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_sort_artist"
-        android:title="Sort by Artist"
+        android:title="@string/menu_sort_artist"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_rescan"
-        android:title="Rescan Storage"
+        android:title="@string/menu_rescan_storage"
         app:showAsAction="never" />
 </menu>

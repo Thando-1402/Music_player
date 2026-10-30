@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.media.AudioDeviceCallback;
@@ -26,15 +25,15 @@ import androidx.core.graphics.ColorUtils;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
 import androidx.media3.session.MediaController;
-import androidx.palette.graphics.Palette;
 
 import com.google.android.material.imageview.ShapeableImageView;
 import com.google.firebase.analytics.FirebaseAnalytics;
 
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class PlaybackStateHelper {
 
@@ -45,6 +44,9 @@ public class PlaybackStateHelper {
     private static final String KEY_COVER = "last_cover";
     private static final String KEY_POSITION_MS = "last_position_ms";
     private static final String KEY_AUTO_RESUME = "auto_restore_last_track";
+
+    private static final ExecutorService ARTWORK_EXECUTOR = Executors.newSingleThreadExecutor();
+    private static final Handler MAIN_HANDLER = new Handler(Looper.getMainLooper());
 
     public static MediaItem buildAdaptiveMediaItem(Song song) {
         Uri artworkUri = song.getCustomCoverUri() != null
@@ -78,10 +80,8 @@ public class PlaybackStateHelper {
     public static int ensureReadableAccent(int rawColor, int fallbackColor) {
         double lum = ColorUtils.calculateLuminance(rawColor);
         if (lum < 0.12) {
-            // Too dark (e.g., black album cover) -> blend toward electric cyan/white
             return ColorUtils.blendARGB(rawColor, fallbackColor, 0.65f);
         } else if (lum > 0.85) {
-            // Very bright white cover -> slightly tone down so it doesn't wash out
             return ColorUtils.blendARGB(rawColor, fallbackColor, 0.30f);
         }
         return rawColor;
@@ -133,8 +133,8 @@ public class PlaybackStateHelper {
 
         try {
             Uri songUri = Uri.parse(uriStr);
-            // Verify file actually exists in MediaStore before restoring ghost tracks
-            try (android.database.Cursor c = context.getContentResolver().query(songUri, new String[]{android.provider.MediaStore.Audio.Media._ID}, null, null, null)) {
+            try (android.database.Cursor c = context.getContentResolver().query(
+                    songUri, new String[]{android.provider.MediaStore.Audio.Media._ID}, null, null, null)) {
                 if (c == null || !c.moveToFirst()) {
                     prefs.edit().clear().apply();
                     return;
@@ -185,87 +185,70 @@ public class PlaybackStateHelper {
         }
         if (miniContainer != null) miniContainer.setVisibility(View.VISIBLE);
 
-        CharSequence title = item.mediaMetadata.title;
-        CharSequence artist = item.mediaMetadata.artist;
-        if (miniTitle != null && title != null && title.length() > 0) miniTitle.setText(title);
-        if (miniSubtitle != null && artist != null && artist.length() > 0) miniSubtitle.setText(artist);
+        final String rawTitle = item.mediaMetadata.title != null ? item.mediaMetadata.title.toString() : "";
+        final String rawArtist = item.mediaMetadata.artist != null ? item.mediaMetadata.artist.toString() : "";
+        if (miniTitle != null && !rawTitle.isEmpty()) miniTitle.setText(rawTitle);
+        if (miniSubtitle != null && !rawArtist.isEmpty()) miniSubtitle.setText(rawArtist);
 
-        if (miniArt != null) {
-            if (item.mediaMetadata.artworkUri != null) {
-                try {
-                    miniArt.setImageURI(item.mediaMetadata.artworkUri);
-                    if (miniArt.getDrawable() == null) {
-                        miniArt.setImageResource(R.drawable.ic_album_placeholder);
-                        resetMiniPlayerPalette(context, miniContainer, miniTitle, miniSubtitle, btnPlayPause);
-                    } else {
-                        applyPaletteToMiniPlayer(context, item.mediaMetadata.artworkUri, miniContainer, miniTitle, miniSubtitle, btnPlayPause);
-                    }
-                } catch (Exception e) {
-                    miniArt.setImageResource(R.drawable.ic_album_placeholder);
-                    resetMiniPlayerPalette(context, miniContainer, miniTitle, miniSubtitle, btnPlayPause);
-                }
-            } else {
-                miniArt.setImageResource(R.drawable.ic_album_placeholder);
-                resetMiniPlayerPalette(context, miniContainer, miniTitle, miniSubtitle, btnPlayPause);
-            }
-        }
         if (btnPlayPause != null) {
             btnPlayPause.setImageResource(controller.isPlaying() ? R.drawable.ic_pause_24 : R.drawable.ic_play_arrow_24);
         }
-        if (miniContainer != null) {
-             ImageButton btnClose = miniContainer.findViewById(R.id.btn_close_mini);
-             if (btnClose != null) {
-                 btnClose.setOnClickListener(v -> {
-                     if (controller.isPlaying()) controller.pause();
-                     controller.clearMediaItems();
-                     miniContainer.setVisibility(View.GONE);
-                 });
-             }
+
+        if (miniArt != null) {
+            final Uri artworkUri = item.mediaMetadata.artworkUri;
+            final Uri audioUri = Uri.parse(item.mediaId);
+            final Context appCtx = context.getApplicationContext();
+            final String mediaId = item.mediaId;
+            miniArt.setTag(mediaId);
+
+            ARTWORK_EXECUTOR.execute(() -> {
+                Song temp = new Song(rawTitle, rawArtist, audioUri, 0);
+                SongMetadataManager.applySavedEdits(appCtx, temp, false);
+                Uri effectiveArt = temp.getCustomCoverUri() != null ? temp.getCustomCoverUri() : artworkUri;
+                String cacheKey = mediaId + (effectiveArt != null ? "|" + effectiveArt : "");
+
+                Bitmap thumb = ArtworkColorHelper.loadThumbnailCached(appCtx, cacheKey, effectiveArt, audioUri, 128);
+                int accent = ArtworkColorHelper.resolveAccentColor(cacheKey, thumb, appCtx);
+
+                MAIN_HANDLER.post(() -> {
+                    if (!mediaId.equals(miniArt.getTag())) return;
+                    if (miniTitle != null && !temp.getTitle().isEmpty()) miniTitle.setText(temp.getTitle());
+                    if (miniSubtitle != null && !temp.getArtist().isEmpty()) miniSubtitle.setText(temp.getArtist());
+
+                    if (thumb != null) {
+                        UiAnimationHelper.crossfadeBitmap(miniArt, thumb);
+                        applyAccentToMiniPlayer(appCtx, accent, miniContainer, miniTitle, miniSubtitle, btnPlayPause);
+                    } else {
+                        miniArt.setImageResource(R.drawable.ic_album_placeholder);
+                        resetMiniPlayerPalette(appCtx, miniContainer, miniTitle, miniSubtitle, btnPlayPause);
+                    }
+                });
+            });
         }
     }
 
-    private static void applyPaletteToMiniPlayer(
+    private static void applyAccentToMiniPlayer(
             Context context,
-            Uri artUri,
+            int accentColor,
             View container,
             TextView title,
             TextView subtitle,
             ImageButton btnPlayPause) {
         if (container == null) return;
-        try (InputStream is = context.getContentResolver().openInputStream(artUri)) {
-            if (is == null) return;
-            Bitmap bitmap = BitmapFactory.decodeStream(is);
-            if (bitmap != null) {
-                Palette.from(bitmap).generate(palette -> {
-                    if (palette == null) return;
-                    int defaultCard = ContextCompat.getColor(context, R.color.surface_card);
-                    int defaultAccent = ContextCompat.getColor(context, R.color.accent_blue);
+        int defaultAccent = ContextCompat.getColor(context, R.color.accent_blue);
+        int safeAccent = ensureReadableAccent(accentColor, defaultAccent);
 
-                    int rawDom = palette.getDominantColor(defaultCard);
-                    int rawVibrant = palette.getVibrantColor( palette.getLightVibrantColor(rawDom));
-                    int safeAccent = ensureReadableAccent(rawVibrant, defaultAccent);
+        int startBg = ColorUtils.blendARGB(safeAccent, Color.parseColor("#14161B"), 0.80f);
+        int endBg = Color.parseColor("#181A20");
+        GradientDrawable gd = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{startBg, endBg});
+        container.setBackground(gd);
 
-                    // Create a smooth horizontal gradient fade from the album's dark tint into #16181D
-                    // so the right-side playback buttons and text NEVER blend into bright or dark covers!
-                    int startBg = ColorUtils.blendARGB(rawDom, Color.parseColor("#121316"), 0.55f);
-                    int endBg = Color.parseColor("#181A20");
-                    GradientDrawable gd = new GradientDrawable(
-                            GradientDrawable.Orientation.LEFT_RIGHT,
-                            new int[]{startBg, endBg});
-                    container.setBackground(gd);
-
-                    boolean isLightBg = ColorUtils.calculateLuminance(startBg) > 0.45;
-                    int primaryText = isLightBg ? Color.parseColor("#121316") : Color.WHITE;
-                    int secondaryText = isLightBg ? Color.parseColor("#44474E") : Color.parseColor("#B0B5BE");
-
-                    if (title != null) title.setTextColor(primaryText);
-                    if (subtitle != null) subtitle.setTextColor(secondaryText);
-                    if (btnPlayPause != null) {
-                        btnPlayPause.setImageTintList(ColorStateList.valueOf(safeAccent));
-                    }
-                });
-            }
-        } catch (Exception ignored) {
+        if (title != null) title.setTextColor(Color.WHITE);
+        if (subtitle != null) subtitle.setTextColor(Color.parseColor("#B8BEC8"));
+        if (btnPlayPause != null) {
+            btnPlayPause.setImageTintList(ColorStateList.valueOf(safeAccent));
         }
     }
 
@@ -324,32 +307,8 @@ public class PlaybackStateHelper {
 
     public static void updateOutputLabels(Context context, TextView tvDeviceName, TextView tvCodec) {
         if (tvDeviceName == null || tvCodec == null) return;
-        String deviceTitle = "Internal Hi-Fi Speaker DAC";
-        String codecLabel = "24-BIT PCM • SPEAKER";
-        try {
-            AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-            if (am != null) {
-                for (AudioDeviceInfo d : am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
-                    int type = d.getType();
-                    String prod = d.getProductName() != null ? d.getProductName().toString().trim() : "";
-                    if (type == AudioDeviceInfo.TYPE_WIRED_HEADSET || type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES) {
-                        deviceTitle = "3.5mm Wired Headphones";
-                        codecLabel = "ANALOG 24-BIT / 96KHZ";
-                        break;
-                    } else if (type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) {
-                        deviceTitle = !prod.isEmpty() ? prod : "Bluetooth Audio";
-                        codecLabel = "BLUETOOTH A2DP / LDAC";
-                        break;
-                    } else if (type == AudioDeviceInfo.TYPE_USB_HEADSET || type == AudioDeviceInfo.TYPE_USB_DEVICE) {
-                        deviceTitle = !prod.isEmpty() ? prod : "External USB DAC";
-                        codecLabel = "USB BIT-PERFECT DIRECT";
-                        break;
-                    }
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        tvDeviceName.setText(deviceTitle);
-        tvCodec.setText(codecLabel);
+        AudioRouteHelper.RouteInfo info = AudioRouteHelper.getActiveRouteInfo(context);
+        tvDeviceName.setText(info.deviceName);
+        tvCodec.setText(info.codecSubtitle);
     }
 }
